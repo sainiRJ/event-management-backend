@@ -2,24 +2,18 @@ import express, { Application } from 'express';
 import bodyParser from 'body-parser';
 import cors from 'cors';
 import pool from './config/database';
+import loader from './loaders/index';
 
 const PORT: string | number = process.env.PORT || 5000;
 
 const app: Application = express();
 
-app.use(
-  cors({
-    origin: '*', // Allow all origins
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Allowed HTTP methods
-    allowedHeaders: ['Content-Type', 'Authorization'], // Allowed headers
-  })
-);
-
 app.use(bodyParser.json());
 
 (async () => {
   try {
-
+    // Load custom loader
+    await loader({ expressApp: app });
     // Test database connection
     const connection = await pool.getConnection();
     console.log('Database connection successful!');
