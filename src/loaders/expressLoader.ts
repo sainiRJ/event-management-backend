@@ -1,5 +1,7 @@
 import express, { Request, Response, NextFunction } from 'express';
 import cors, { CorsOptions } from "cors";
+import apiRoutes from "../api/index";
+
 
 const loadExpress = ({ app }: { app: express.Application }): void => {
   app.enable("trust proxy");
@@ -16,6 +18,8 @@ const loadExpress = ({ app }: { app: express.Application }): void => {
 	// adds jwt token verify to each request
 	// app.use(jwtTokenVerify);
   app.use(cors(corsOptions));  
+  app.use("/api", apiRoutes());
+
 
 };
 
