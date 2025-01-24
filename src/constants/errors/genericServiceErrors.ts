@@ -1,4 +1,4 @@
-import {asTypeIServiceError} from "@/customTypes/commonServiceTypes";
+import {asTypeIServiceError} from "../../customTypes/commonServiceTypes";
 
 const genericServiceErrors = asTypeIServiceError({
 	auth: {

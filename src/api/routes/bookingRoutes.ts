@@ -1,0 +1,36 @@
+import {NextFunction, Router} from "express";
+import {Segments, celebrate} from "celebrate";
+import {RouteType, iRequest, iResponse} from "../../customTypes/expressTypes";
+import {bookingBodySchema} from "../../validations/bookingRouteSchema";
+import {iBookingCreateDTO} from "../../customTypes/appDataTypes/bookingTypes"
+import BookingService from "../../services/bookingService";
+const route = Router();
+
+const bookingService = new BookingService();
+
+const bookingRoute: RouteType = (apiRouter) => {
+    apiRouter.use("/booking", route);
+    route.post(
+        "/create",
+        celebrate({
+            [Segments.BODY]: bookingBodySchema, // User schema for validation
+        }),
+        async (
+            req: iRequest<iBookingCreateDTO>,
+            res: iResponse<iBookingCreateDTO>,
+            next: NextFunction
+        ) => {
+            // Let TypeScript infer the return type
+            try {
+                const {httpStatusCode, responseBody} = await bookingService.createBooking(
+                    req.body
+                );
+                res.status(httpStatusCode).json(responseBody); // Send the response, no return value
+            } catch (error) {
+                next(error); // Pass any errors to the next middleware (error handler)
+            }
+        }
+    );
+};
+
+export default bookingRoute;

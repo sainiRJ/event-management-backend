@@ -4,9 +4,9 @@ import {
 	ParamsDictionary,
 	Query,
 	Send,
-} from "@/customTypes/expressServeStaticCore";
-import {iGenericResponse} from "@/customTypes/commonServiceTypes";
-import {GenericNullable} from "@/customTypes/commonTypes";
+} from "../customTypes/expressServeStaticCore";
+import {iGenericResponse} from "../customTypes/commonServiceTypes";
+import {GenericNullable} from "../customTypes/commonTypes";
 
 type RouteType = (apiRouter: Router) => void;
 
