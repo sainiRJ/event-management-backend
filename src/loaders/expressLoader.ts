@@ -86,12 +86,6 @@ const loadExpress = ({app}: {app: express.Application}): void => {
 		methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
 		credentials: true,
 		optionsSuccessStatus: 204,
-		allowedHeaders: [
-			"Content-Type",
-			"Authorization",
-			"X-Refresh-Token",
-			"x-refresh-token",
-		], // Correct way to allow headers
 	};
 	// adds jwt token verify to each request
 	// app.use(jwtTokenVerify);

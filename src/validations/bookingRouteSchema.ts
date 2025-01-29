@@ -7,8 +7,8 @@ const bookingBodySchema = Joi.object({
 		.required()
 		.label("Phone Number"),
 	email: Joi.string().email().required().label("Email Address"),
-	eventDateTime: Joi.date().iso().required().label("Event Date and Time"),
-	eventType: Joi.string().required().label("Event Type"),
+	eventDateTime: Joi.date().required().label("Event Date and Time"),
+	service: Joi.string().required().label("Event Type"),
 	venueAddress: Joi.string().required().label("Venue Address"),
 	decorationTheme: Joi.string().required().label("Decoration Theme"),
 	additionalNotes: Joi.string().optional().allow("").label("Additional Notes"),
