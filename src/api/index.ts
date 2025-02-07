@@ -2,6 +2,7 @@ import {Router} from "express";
 import userRoutes from './routes/userRoutes';
 import bookingRoute from "./routes/bookingRoutes";
 import serviceRoute  from "./routes/serviceRoutes";
+import statusRoute from "./routes/statusRoutes"
 
 
 const getRouter = (): Router => {
@@ -11,6 +12,7 @@ const getRouter = (): Router => {
 	userRoutes(apiRouter);
 	bookingRoute(apiRouter);
 	serviceRoute(apiRouter);
+	statusRoute(apiRouter);
 
 	return apiRouter;
 };

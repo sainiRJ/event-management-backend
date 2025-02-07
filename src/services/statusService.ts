@@ -1,25 +1,25 @@
 import {response} from "express";
 import pool from "../config/database";
 
-import {iService} from "../customTypes/appDataTypes/serviceTypes";
+import {iStatus} from "../customTypes/appDataTypes/statusTypes";
 import {httpStatusCodes} from "../customTypes/networkTypes";
 import serviceUtil from "../utils/serviceUtil";
 import {iGenericServiceResult} from "../customTypes/commonServiceTypes";
 import {genericServiceErrors} from "../constants/errors/genericServiceErrors";
 
 export default class ServiceService {
-	public async allService(): Promise<iGenericServiceResult<iService[]>> {
+	public async allStatuses(): Promise<iGenericServiceResult<iStatus[]>> {
 		try {
-			const [services] = await pool.execute(
-				"Select id, service_name, description, price from Services"
+			const [statuses] = await pool.execute(
+				"Select id, name, context, description from statuses"
 			);
-			console.log("hello service", services);
+			console.log("hello service", statuses);
 			// Return successful result
 			return serviceUtil.buildResult(
 				true,
 				httpStatusCodes.SUCCESS_OK,
 				null,
-				services as iService[]
+				statuses as iStatus[]
 			);
 		} catch (error: any) {
 			console.log(error);
