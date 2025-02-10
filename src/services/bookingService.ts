@@ -1,4 +1,3 @@
-import {response} from "express";
 import {iBookingCreateDTO} from "../customTypes/appDataTypes/bookingTypes";
 import {httpStatusCodes} from "../customTypes/networkTypes";
 import serviceUtil from "../utils/serviceUtil";
