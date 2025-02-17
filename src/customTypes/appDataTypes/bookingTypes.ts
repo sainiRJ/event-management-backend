@@ -1,12 +1,15 @@
 export interface iBookingCreateDTO {
     customerName: string;
     phoneNumber: string;
-    email: string;
     eventDateTime: string;
-    eventType: string;
+    serviceId: string;
     venueAddress: string; 
     decorationTheme: string;
     additionalNotes?: string;
     budget: string;
+    statusId: string;
+    paymentStatusId: string;
+    eventName: string;
+
   }
   

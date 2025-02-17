@@ -1,4 +1,7 @@
 import { response } from "express";
+import {Prisma} from "@prisma/client";
+import {prisma}  from "../prisma/prismaClient"
+
 import {iUserRegisterDTO, iUserRegisterResponse} from "../customTypes/appDataTypes/userTypes";
 import { httpStatusCodes } from "../customTypes/networkTypes";
 import serviceUtil from "../utils/serviceUtil";

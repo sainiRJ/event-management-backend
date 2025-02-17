@@ -10,6 +10,24 @@ const bookingService = new BookingService();
 
 const bookingRoute: RouteType = (apiRouter) => {
     apiRouter.use("/booking", route);
+    route.get(
+            "/all",
+            async (
+                req: iRequest<any>,
+                res: iResponse<any>,
+                next: NextFunction
+            ) => {
+                // Let TypeScript infer the return type
+                try {
+                    const {httpStatusCode, responseBody} = await bookingService.allBooking(
+                    );
+                    res.status(httpStatusCode).json(responseBody); // Send the response, no return value
+                } catch (error) {
+                    next(error); // Pass any errors to the next middleware (error handler)
+                }
+            }
+        );
+
     route.post(
         "/create",
         celebrate({

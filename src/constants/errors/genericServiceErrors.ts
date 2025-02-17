@@ -26,6 +26,25 @@ const genericServiceErrors = asTypeIServiceError({
 			message: "Something went wrong.",
 		},
 	},
+
+	generic: {
+		ServiceDoesNotExist: {
+			error: "ServiceDoesNotExist",
+			message: "Service does not exist",
+		},
+		StatusDoesNotExist: {
+			error: "StatusDoesNotExist",
+			message: "Status does not exist",
+		},
+		PaymentStatusDoesNotExist: {
+			error: "PaymentStatusDoesNotExist",
+			message: "Payment status does not exist",
+		},
+		BookingDoesNotExist: {
+			error: "BookingDoesNotExist",
+			message: "Booking does not exist",
+		}
+	}
 });
 
 export {genericServiceErrors};

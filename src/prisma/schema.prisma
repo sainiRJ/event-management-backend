@@ -1,0 +1,170 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Bookings {
+  id                                           String     @id @db.Char(36)
+  eventId                                      String     @db.Char(36) @map("event_id")
+  serviceId                                    String     @db.Char(36) @map("service_id")
+  statusId                                     String     @db.Char(36) @map("status_id")
+  totalCost                                    Decimal    @db.Decimal(10, 2) @map("total_cost")
+  paymentStatusId                              String     @db.Char(36) @map("payment_status_id")
+  bookedAt                                     DateTime?  @default(now()) @db.Timestamp(0) @map("booked_at")
+
+  services                                     Service    @relation(fields: [serviceId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "bookings_ibfk_2")
+  bookingStatus                                Status     @relation("booking_status", fields: [statusId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "bookings_ibfk_3")
+  paymentStatus                                Status     @relation("payment_status", fields: [paymentStatusId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "bookings_ibfk_4")
+  events                                       Event      @relation(fields: [eventId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "bookings_ibfk_5")
+  payments                                     Payment[]
+
+  @@index([eventId], map: "event_id")
+  @@index([paymentStatusId], map: "payment_status_id")
+  @@index([serviceId], map: "service_id")
+  @@index([statusId], map: "status_id")
+  @@map("bookings")
+}
+
+model Category {
+  id               String             @id @db.Char(36)
+  name             String             @unique(map: "name") @db.VarChar(100)
+  description      String?            @db.Text
+  createdAt        DateTime?          @default(now()) @db.Timestamp(0) @map("created_at")
+  updatedAt        DateTime?          @default(now()) @db.Timestamp(0) @map("updated_at")
+  photos           Photos[]
+  serviceCategories ServiceCategory[]
+  @@map("categories")
+}
+
+model Employee {
+  id          String    @id @db.Char(36)
+  userId      String    @db.Char(36) @map("user_id")
+  designation String    @db.VarChar(100)
+  salary      Decimal   @db.Decimal(10, 2)
+  joinedDate  DateTime  @db.Date @map("joined_date")
+  statusId    String    @db.Char(36) @map("status_id")
+  createdAt   DateTime? @default(now()) @db.Timestamp(0) @map("created_at")
+  updatedAt   DateTime? @default(now()) @db.Timestamp(0) @map("updated_at")
+  users       User      @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "employees_ibfk_1")
+  statuses    Status    @relation(fields: [statusId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "employees_ibfk_2")
+
+  @@index([statusId], map: "status_id")
+  @@index([userId], map: "user_id")
+  @@map("employees")
+}
+
+model Event {
+  id           String     @id @db.Char(36)
+  customerName String     @db.Char(255) @map("customer_name")
+  phoneNumber  String?    @db.VarChar(15) @map("phone_number")
+  eventName    String     @db.VarChar(255) @map("event_name")
+  eventDate    DateTime   @db.Date @map("event_date")
+  location     String     @db.VarChar(255)
+  createdAt    DateTime?  @default(now()) @db.Timestamp(0) @map("created_at")
+  updatedAt    DateTime?  @default(now()) @db.Timestamp(0) @map("updated_at")
+  bookings     Bookings[]
+  @@map("events")
+}
+
+model Payment {
+  id              String    @id @db.Char(36)
+  bookingId       String    @db.Char(36) @map("booking_id")
+  amount          Decimal   @db.Decimal(10, 2)
+  paymentStatusId String    @db.Char(36) @map("payment_status_id")
+  paymentDate     DateTime? @default(now()) @db.Timestamp(0) @map("payment_date")
+  bookings        Bookings   @relation(fields: [bookingId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "payments_ibfk_1")
+  statuses        Status    @relation(fields: [paymentStatusId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "payments_ibfk_2")
+
+  @@index([bookingId], map: "booking_id")
+  @@index([paymentStatusId], map: "payment_status_id")
+
+  @@map("payments")
+}
+
+model Photos {
+  id          String    @id @db.Char(36)
+  categoryId  String    @db.Char(36) @map("category_id")
+  imageUrl    String    @db.VarChar(255) @map("image_url")
+  description String?   @db.Text
+  uploadedAt  DateTime? @default(now()) @db.Timestamp(0) @map("uploaded_at")
+  categories  Category  @relation(fields: [categoryId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "photos_ibfk_1")
+
+  @@index([categoryId], map: "category_id")
+
+  @@map("photos")
+}
+
+model Role {
+  id          String    @id @db.Char(36)
+  roleName    String    @unique(map: "role_name") @db.VarChar(50) @map("role_name")
+  description String?   @db.Text
+  createdAt   DateTime? @default(now()) @db.Timestamp(0) @map("created_at")
+  updatedAt   DateTime? @default(now()) @db.Timestamp(0) @map("updated_at")
+  users       User[]
+
+  @@map("roles")
+}
+
+model ServiceCategory {
+  id         String    @id @db.Char(36)
+  serviceId  String    @db.Char(36) @map("service_id")
+  categoryId String    @db.Char(36) @map("category_id")
+  services   Service   @relation(fields: [serviceId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "service_categories_ibfk_1")
+  categories Category  @relation(fields: [categoryId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "service_categories_ibfk_2")
+
+  @@index([categoryId], map: "category_id")
+  @@index([serviceId], map: "service_id")
+
+  @@map("service_categories")
+}
+
+model Service {
+  id                String              @id @db.Char(36)
+  serviceName       String              @db.VarChar(100) @map("service_name")
+  description       String?             @db.Text
+  price             Decimal             @db.Decimal(10, 2)
+  available         Boolean?            @default(true)
+  createdAt         DateTime?           @default(now()) @db.Timestamp(0) @map("created_at")
+  updatedAt         DateTime?           @default(now()) @db.Timestamp(0) @map("updated_at")
+  bookings          Bookings[]
+  serviceCategories ServiceCategory[]
+
+  @@map("services")
+}
+
+model Status {
+  id                                        String     @id @db.Char(36)
+  context                                   String     @db.VarChar(100)
+  name                                      String     @db.VarChar(100)
+  description                               String?    @db.Text
+  createdAt                                 DateTime?  @default(now()) @db.Timestamp(0) @map("created_at")
+  updatedAt                                 DateTime?  @default(now()) @db.Timestamp(0) @map("updated_at")
+  bookingStatus                             Bookings[]  @relation("booking_status")
+  paymentStatus                             Bookings[]  @relation("payment_status")
+  employees                                 Employee[]
+  payments                                  Payment[]
+
+  @@map("statuses")
+}
+
+model User {
+  id          String     @id @db.Char(36)
+  name        String     @db.VarChar(100)
+  email       String?    @db.VarChar(100)
+  password    String?    @db.VarChar(255)
+  phoneNumber String?    @db.VarChar(15) @map("phone_number")
+  roleId      String     @db.Char(36) @map("role_id")
+  status      String?    @default("active") @db.VarChar(50)
+  createdAt   DateTime?  @default(now()) @db.Timestamp(0) @map("created_at")
+  updatedAt   DateTime?  @default(now()) @db.Timestamp(0) @map("updated_at")
+  employees   Employee[]
+  roles       Role       @relation(fields: [roleId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "users_ibfk_1")
+
+  @@index([roleId], map: "role_id")
+
+  @@map("users")
+}

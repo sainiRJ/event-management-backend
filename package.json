@@ -52,5 +52,9 @@
       "eslint --fix",
       "prettier --write"
     ]
-  }
+  },
+  "prisma": {
+  "schema": "src/prisma/schema.prisma"
+}
+
 }

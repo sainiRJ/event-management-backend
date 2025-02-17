@@ -1,7 +1,6 @@
 import express, { Application } from 'express';
 import bodyParser from 'body-parser';
 import cors from 'cors';
-import pool from './config/database';
 import loader from './loaders/index';
 
 const PORT: string | number = process.env.PORT || 5000;
@@ -14,10 +13,6 @@ app.use(bodyParser.json());
   try {
     // Load custom loader
     await loader({ expressApp: app });
-    // Test database connection
-    const connection = await pool.getConnection();
-    console.log('Database connection successful!');
-    connection.release();
   } catch (err: any) {
     console.error('Initialization failed:', err.message);
     process.exit(1); // Exit if loader or DB connection fails

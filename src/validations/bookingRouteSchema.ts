@@ -6,13 +6,15 @@ const bookingBodySchema = Joi.object({
 		.pattern(/^[0-9]{10,15}$/)
 		.required()
 		.label("Phone Number"),
-	email: Joi.string().email().required().label("Email Address"),
 	eventDateTime: Joi.date().required().label("Event Date and Time"),
-	service: Joi.string().required().label("Event Type"),
+	serviceId: Joi.string().required().label("Event Type"),
 	venueAddress: Joi.string().required().label("Venue Address"),
 	decorationTheme: Joi.string().required().label("Decoration Theme"),
 	additionalNotes: Joi.string().optional().allow("").label("Additional Notes"),
 	budget: Joi.number().min(0).required().label("Budget"),
+	statusId: Joi.string().required(),
+	paymentStatusId: Joi.string().required(),
+	eventName: Joi.string().required()
 });
 
 export {bookingBodySchema};

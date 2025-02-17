@@ -1,8 +1,10 @@
+import { Decimal } from "@prisma/client/runtime/library";
+
 export interface iService {
     id: string;
-    service_name: string;
+    serviceName: string;
     description: string | null;
-    price: number;
+    price: Decimal;
     available: boolean;
   }
   

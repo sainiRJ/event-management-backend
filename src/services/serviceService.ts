@@ -1,5 +1,7 @@
 import {response} from "express";
-import pool from "../config/database";
+// import pool from "../config/database";
+import {Prisma} from "@prisma/client";
+import {prisma}  from "../prisma/prismaClient"
 
 import {iService} from "../customTypes/appDataTypes/serviceTypes";
 import {httpStatusCodes} from "../customTypes/networkTypes";
@@ -10,10 +12,15 @@ import {genericServiceErrors} from "../constants/errors/genericServiceErrors";
 export default class ServiceService {
 	public async allService(): Promise<iGenericServiceResult<iService[]>> {
 		try {
-			const [services] = await pool.execute(
-				"Select id, service_name, description, price from Services"
-			);
-			console.log("hello service", services);
+			const services = await prisma.service.findMany({
+				select: {
+					id: true,
+					serviceName: true,
+					description: true,
+					price: true,
+					available: true,
+				},
+			});
 			// Return successful result
 			return serviceUtil.buildResult(
 				true,

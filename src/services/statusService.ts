@@ -1,5 +1,7 @@
 import {response} from "express";
-import pool from "../config/database";
+import {Prisma} from "@prisma/client";
+import {prisma}  from "../prisma/prismaClient"
+
 
 import {iStatus} from "../customTypes/appDataTypes/statusTypes";
 import {httpStatusCodes} from "../customTypes/networkTypes";
@@ -10,10 +12,10 @@ import {genericServiceErrors} from "../constants/errors/genericServiceErrors";
 export default class ServiceService {
 	public async allStatuses(): Promise<iGenericServiceResult<iStatus[]>> {
 		try {
-			const [statuses] = await pool.execute(
-				"Select id, name, context, description from statuses"
-			);
-			console.log("hello service", statuses);
+			// const [statuses] = await pool.execute(
+			// 	"Select id, name, context, description from statuses"
+			// );
+			const statuses = await prisma.status.findMany();
 			// Return successful result
 			return serviceUtil.buildResult(
 				true,
