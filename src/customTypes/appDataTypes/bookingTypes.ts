@@ -12,4 +12,16 @@ export interface iBookingCreateDTO {
     eventName: string;
 
   }
+
+ export interface iBookingUpdateDTO {
+    serviceId?: string;
+    statusId?: string;
+    paymentStatusId?: string;
+    budget?: string;
+    customerName?: string;
+    phoneNumber?: string;
+    eventDateTime?: string; // ISO date string
+    eventName?: string;
+    venueAddress?: string;
+}
   

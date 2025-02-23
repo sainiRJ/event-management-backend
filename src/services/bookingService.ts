@@ -1,7 +1,7 @@
 import {Prisma} from "@prisma/client";
 import {prisma}  from "../prisma/prismaClient"
 import securityUtil from "../utils/securityUtil";
-import {iBookingCreateDTO} from "../customTypes/appDataTypes/bookingTypes";
+import {iBookingCreateDTO, iBookingUpdateDTO} from "../customTypes/appDataTypes/bookingTypes";
 import {httpStatusCodes} from "../customTypes/networkTypes";
 import serviceUtil from "../utils/serviceUtil";
 import {iGenericServiceResult} from "../customTypes/commonServiceTypes";
@@ -166,4 +166,162 @@ export default class BookingService {
 			);
 		}
 	}
+	public async updateBooking(
+		bookingId: string,
+		updateDTO: iBookingUpdateDTO
+	): Promise<iGenericServiceResult<any>> {
+		try {
+			// 1. Find existing booking with associated event
+			const existingBooking = await prisma.bookings.findUnique({
+				where: { id: bookingId },
+				include: { events: true }
+			});
+	
+			if (!existingBooking) {
+				return serviceUtil.buildResult(
+					false,
+					httpStatusCodes.CLIENT_ERROR_NOT_FOUND,
+					genericServiceErrors.generic.BookingDoesNotExist
+				);
+			}
+	
+			// 2. Validate related entities if present in DTO
+			if (updateDTO.serviceId) {
+				const serviceExist = await prisma.service.findUnique({
+					where: { id: updateDTO.serviceId }
+				});
+				if (!serviceExist) {
+					return serviceUtil.buildResult(
+						false,
+						httpStatusCodes.CLIENT_ERROR_NOT_FOUND, // Internal server error for any issues with Firebase or DB
+						genericServiceErrors.generic.ServiceDoesNotExist
+					);
+				}
+			}
+	
+			if (updateDTO.statusId) {
+				const statusExist = await prisma.status.findUnique({
+					where: { id: updateDTO.statusId }
+				});
+				if (!statusExist) return serviceUtil.buildResult(
+					false,
+					httpStatusCodes.CLIENT_ERROR_NOT_FOUND, // Internal server error for any issues with Firebase or DB
+					genericServiceErrors.generic.StatusDoesNotExist
+				);
+			}
+	
+			if (updateDTO.paymentStatusId) {
+				const paymentStatusExist = await prisma.status.findUnique({
+					where: { id: updateDTO.paymentStatusId }
+				});
+				return serviceUtil.buildResult(
+					false,
+					httpStatusCodes.CLIENT_ERROR_NOT_FOUND, // Internal server error for any issues with Firebase or DB
+					genericServiceErrors.generic.PaymentStatusDoesNotExist
+				);
+			}
+	
+			// 3. Prepare update data
+			const eventUpdateData: any = {
+				updatedAt: new Date()
+			};
+	
+			if (updateDTO.customerName) eventUpdateData.customerName = updateDTO.customerName;
+			if (updateDTO.phoneNumber) eventUpdateData.phoneNumber = updateDTO.phoneNumber;
+			if (updateDTO.eventDateTime) eventUpdateData.eventDate = new Date(updateDTO.eventDateTime);
+			if (updateDTO.eventName) eventUpdateData.eventName = updateDTO.eventName;
+			if (updateDTO.venueAddress) eventUpdateData.location = updateDTO.venueAddress;
+	
+			const bookingUpdateData: any = {};
+			if (updateDTO.serviceId) bookingUpdateData.serviceId = updateDTO.serviceId;
+			if (updateDTO.statusId) bookingUpdateData.statusId = updateDTO.statusId;
+			if (updateDTO.paymentStatusId) bookingUpdateData.paymentStatusId = updateDTO.paymentStatusId;
+			if (updateDTO.budget) bookingUpdateData.totalCost = updateDTO.budget;
+	
+			// 4. Perform atomic updates
+			const [updatedEvent, updatedBooking] = await prisma.$transaction([
+				prisma.event.update({
+					where: { id: existingBooking.eventId },
+					data: eventUpdateData
+				}),
+				prisma.bookings.update({
+					where: { id: bookingId },
+					data: bookingUpdateData
+				})
+			]);
+	
+			// 5. Prepare response
+			const responseData = {
+				...updatedBooking,
+				event: updatedEvent
+			};
+	
+			return serviceUtil.buildResult(
+				true,
+				httpStatusCodes.SUCCESS_OK,
+				null,
+				responseData
+			);
+	
+		} catch (error: any) {
+			console.error(error);
+			return serviceUtil.buildResult(
+				false,
+				httpStatusCodes.SERVER_ERROR_INTERNAL_SERVER_ERROR,
+				genericServiceErrors.errors.SomethingWentWrong
+			);
+		}
+	}
+
+	public async deleteBooking(
+		bookingId: string
+	): Promise<iGenericServiceResult<any>> {
+		try {
+			// 1. Find existing booking
+			const existingBooking = await prisma.bookings.findUnique({
+				where: { id: bookingId }
+			});
+	
+			if (!existingBooking) {
+				return serviceUtil.buildResult(
+					false,
+					httpStatusCodes.CLIENT_ERROR_NOT_FOUND,
+					genericServiceErrors.generic.BookingDoesNotExist
+				);
+			}
+	
+			// 2. Perform atomic deletion of booking and associated event
+			const [deletedBooking, deletedEvent] = await prisma.$transaction([
+				prisma.bookings.delete({
+					where: { id: bookingId }
+				}),
+				prisma.event.delete({
+					where: { id: existingBooking.eventId }
+				})
+			]);
+	
+			// 3. Prepare response
+			const responseData = {
+				message: "Booking deleted successfully",
+				deletedBookingId: deletedBooking.id,
+				deletedEventId: deletedEvent.id
+			};
+	
+			return serviceUtil.buildResult(
+				true,
+				httpStatusCodes.SUCCESS_OK,
+				null,
+				responseData
+			);
+	
+		} catch (error: any) {
+			console.error(error);
+			return serviceUtil.buildResult(
+				false,
+				httpStatusCodes.SERVER_ERROR_INTERNAL_SERVER_ERROR,
+				genericServiceErrors.errors.SomethingWentWrong
+			);
+		}
+	}
+	
 }
