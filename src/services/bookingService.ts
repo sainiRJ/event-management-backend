@@ -13,10 +13,6 @@ export default class BookingService {
 		bookingBodyDTO: iBookingCreateDTO
 	): Promise<iGenericServiceResult<iBookingCreateDTO>> {
 		try{
-			console.log("hello booking");
-			const responseBody = {
-				message: "Booking created successfully",
-			}
 			/*
 			verify service, status, and payment_status exist or not
 			*/
@@ -34,7 +30,7 @@ export default class BookingService {
 			}
 			const statusExist = await prisma.status.findUnique({
 				where: {
-					id: bookingBodyDTO.statusId
+					id: bookingBodyDTO.bookingStatusId
 				}
 			})
 			if(!statusExist){
@@ -75,7 +71,7 @@ export default class BookingService {
 						id: securityUtil.generateUUID(),
 						eventId: event.id,
 						serviceId: bookingBodyDTO.serviceId,
-						statusId: bookingBodyDTO.statusId,
+						statusId: bookingBodyDTO.bookingStatusId,
 						totalCost: bookingBodyDTO.budget,
 						paymentStatusId: bookingBodyDTO.paymentStatusId
 					}

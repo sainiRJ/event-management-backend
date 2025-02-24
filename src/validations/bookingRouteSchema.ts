@@ -12,7 +12,7 @@ const bookingBodySchema = Joi.object({
 	decorationTheme: Joi.string().required().label("Decoration Theme"),
 	additionalNotes: Joi.string().optional().allow("").label("Additional Notes"),
 	budget: Joi.number().min(0).required().label("Budget"),
-	statusId: Joi.string().required(),
+	bookingStatusId: Joi.string().required(),
 	paymentStatusId: Joi.string().required(),
 	eventName: Joi.string().required()
 });

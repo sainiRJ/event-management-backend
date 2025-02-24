@@ -7,7 +7,7 @@ export interface iBookingCreateDTO {
     decorationTheme: string;
     additionalNotes?: string;
     budget: string;
-    statusId: string;
+    bookingStatusId: string;
     paymentStatusId: string;
     eventName: string;
 

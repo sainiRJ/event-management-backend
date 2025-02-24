@@ -2,6 +2,9 @@ import express, { Application } from 'express';
 import bodyParser from 'body-parser';
 import cors from 'cors';
 import loader from './loaders/index';
+import dotenv from 'dotenv';
+dotenv.config();
+
 console.log("port number", process.env.PORT)
 
 const PORT: string | number = process.env.PORT || 3080;
