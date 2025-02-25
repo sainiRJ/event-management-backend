@@ -73,6 +73,7 @@ export default class BookingService {
 						serviceId: bookingBodyDTO.serviceId,
 						statusId: bookingBodyDTO.bookingStatusId,
 						totalCost: bookingBodyDTO.budget,
+						advancePayment: bookingBodyDTO.advancePayment,
 						paymentStatusId: bookingBodyDTO.paymentStatusId
 					}
 				})

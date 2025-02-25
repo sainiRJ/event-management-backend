@@ -13,6 +13,7 @@ model Bookings {
   serviceId                                    String     @db.Char(36) @map("service_id")
   statusId                                     String     @db.Char(36) @map("status_id")
   totalCost                                    Decimal    @db.Decimal(10, 2) @map("total_cost")
+  advancePayment                               Decimal?  @db.Decimal(10, 2) @map("advance_payment")
   paymentStatusId                              String     @db.Char(36) @map("payment_status_id")
   bookedAt                                     DateTime?  @default(now()) @db.Timestamp(0) @map("booked_at")
 
