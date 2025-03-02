@@ -43,6 +43,18 @@ const genericServiceErrors = asTypeIServiceError({
 		BookingDoesNotExist: {
 			error: "BookingDoesNotExist",
 			message: "Booking does not exist",
+		},
+		UserDoesNotExist: {
+			error: "UserDoesNotExist",
+			message: "User does not exist",
+		},
+		EmployeeDoesNotExist: {
+			error: "EmployeeDoesNotExist",
+			message: "Employee does not exist",
+		},
+		EmployeeDoesNotFound: {
+			error: "EmployeeDoesNotFound",
+			message: "Employee does not found",
 		}
 	}
 });
