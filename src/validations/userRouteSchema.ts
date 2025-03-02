@@ -1,21 +1,13 @@
 import {Joi} from "celebrate";
 
 const userSignupBodySchema =Joi.object({
-	firstName: Joi.string()
+	name: Joi.string()
 	  .min(2) // Adjust minimum length as per requirement
 	  .max(100)
 	  .optional()
 	  .messages({
-		"string.min": "First Name must be at least 2 characters long",
-		"string.max": "First Name cannot exceed 100 characters",
-	  }),
-	  lastName: Joi.string()
-	  .min(2) // Adjust minimum length as per requirement
-	  .max(100)
-	  .optional()
-	  .messages({
-		"string.min": "Last Name must be at least 2 characters long",
-		"string.max": "Last Name cannot exceed 100 characters",
+		"string.min": "Name must be at least 2 characters long",
+		"string.max": "Name cannot exceed 100 characters",
 	  }),
 	email: Joi.string()
 	  .email()
@@ -24,14 +16,16 @@ const userSignupBodySchema =Joi.object({
 		"string.email": "Please enter a valid email address",
 		"any.required": "Email is required",
 	  }),
-	mobile: Joi.string()
+	mobileNumber: Joi.string()
 	  .pattern(/^\d{10}$/) // Assumes a 10-digit number format
 	  .optional()
 	  .messages({
 		"string.pattern.base": "Mobile number must be a valid 10-digit number",
 	  }),
-	  isAgreed: Joi.boolean()
-	  .optional(),
+	roleId: Joi.string()
+	  .optional()
+	  .messages({"any.optional": "roleId is optional"}),
+	  
 	password: Joi.string()
 	  .min(8) // Adjust minimum length as needed
 	  .optional()

@@ -7,17 +7,17 @@ export interface iGreetInputDTO {
 }
 
 export interface iUserRegisterDTO {
-	firstName: NullableString;
-	lastName:NullableString;
+	name: string;
 	email: string;
-	mobile?: string;
+	mobileNumber?: NullableString;
 	password: NullableString;
 	confirmPassword: string;
+	roleId?: string;
 }
 
 export interface iUserRegisterResponse{
-	name: NullableString;
-	email: string;
+	name?: NullableString;
+	email?: string;
 	mobile?: string;
 }
 

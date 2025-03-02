@@ -55,7 +55,15 @@ const genericServiceErrors = asTypeIServiceError({
 		EmployeeDoesNotFound: {
 			error: "EmployeeDoesNotFound",
 			message: "Employee does not found",
-		}
+		},
+		RoleDoesNotExist: {
+			error: "RoleDoesNotExist",
+			message: "Role does not exist",
+		},
+		EmailAlreadyExists: {
+			error: "EmailAlreadyExists",
+            message: "Email already exists",
+        },
 	}
 });
 
