@@ -3,6 +3,7 @@ import userRoutes from './routes/userRoutes';
 import bookingRoute from "./routes/bookingRoutes";
 import serviceRoute  from "./routes/serviceRoutes";
 import statusRoute from "./routes/statusRoutes"
+import employeeRoute from "./routes/employeeRoutes";
 
 
 const getRouter = (): Router => {
@@ -13,6 +14,7 @@ const getRouter = (): Router => {
 	bookingRoute(apiRouter);
 	serviceRoute(apiRouter);
 	statusRoute(apiRouter);
+	employeeRoute(apiRouter);
 
 	return apiRouter;
 };
