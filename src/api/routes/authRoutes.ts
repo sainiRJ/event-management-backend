@@ -1,6 +1,7 @@
 import {NextFunction, Router} from "express";
 import {Segments, celebrate} from "celebrate";
 import {RouteType, iRequest, iResponse} from "../../customTypes/expressTypes";
+import {userBodySchema} from "../../validations/authRouteSchema"
 import AuthService from "../../services/authService";
 import {Joi} from "celebrate";
 import { configDotenv } from "dotenv";
@@ -11,12 +12,10 @@ const authService = new AuthService()
 
 const authRoute: RouteType = (apiRouter) =>{
     apiRouter.use("/auth", route);
-    route.get(
-        "/google",
+    route.post(
+        "/google/callback",
         celebrate({
-            [Segments.BODY]: Joi.object({
-                code: Joi.string().required(), 
-            }),
+            [Segments.BODY]: userBodySchema,
         }),
         async (
             req: iRequest<any>,
@@ -34,3 +33,6 @@ const authRoute: RouteType = (apiRouter) =>{
         }
     )
 }
+
+
+export default authRoute;

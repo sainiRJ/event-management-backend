@@ -1,77 +1,67 @@
 import { prisma } from "../prisma/prismaClient";
 import { httpStatusCodes } from "../customTypes/networkTypes";
+import {iUserDTO} from "../customTypes/appDataTypes/authTypes"
 import serviceUtil from "../utils/serviceUtil";
+import securityUtil from "../utils/securityUtil";
 import { genericServiceErrors } from "../constants/errors/genericServiceErrors";
-import fetch from "node-fetch";
+import jwt from "jsonwebtoken";
+import { config } from "../config/config";
+import { response } from "express";
 
 export default class AuthService {
-  public async authenticateUser(authorizationCode: string) {
+  public async authenticateUser(userData: iUserDTO) {
     try {
-      if (!authorizationCode) {
+      if (!userData) {
         return serviceUtil.buildResult(
           false,
           httpStatusCodes.CLIENT_ERROR_BAD_REQUEST,
-          "Authorization code is required"
+          genericServiceErrors.errors.SomethingWentWrong
         );
       }
-
-      // Exchange authorization code for access token
-      const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({
-          code: authorizationCode,
-          client_id: process.env.GOOGLE_CLIENT_ID!,
-          client_secret: process.env.GOOGLE_CLIENT_SECRET!,
-          redirect_uri: process.env.OAUTH_REDIRECT_URI!,
-          grant_type: "authorization_code",
-        }),
-      });
-
-      const tokenData = await tokenResponse.json();
-      if (!tokenData.access_token) {
-        return serviceUtil.buildResult(
-          false,
-          httpStatusCodes.CLIENT_ERROR_UNAUTHORIZED,
-          "Failed to get access token"
-        );
-      }
-
-      // Fetch user info from Google
-      const userInfoResponse = await fetch(
-        "https://www.googleapis.com/oauth2/v2/userinfo",
-        {
-          headers: { Authorization: `Bearer ${tokenData.access_token}` },
-        }
-      );
-
-      const userData = await userInfoResponse.json();
+      console.log("userData", userData)
 
       if (!userData.email) {
         return serviceUtil.buildResult(
           false,
           httpStatusCodes.CLIENT_ERROR_BAD_REQUEST,
-          "Failed to retrieve user info"
+          genericServiceErrors.generic.UserDoesNotExist
         );
       }
 
-      // Upsert user in database
-      const user = await prisma.user.upsert({
-        where: { email: userData.email },
-        update: { name: userData.name, picture: userData.picture },
-        create: {
-          googleId: userData.id,
-          email: userData.email,
-          name: userData.name,
-          picture: userData.picture,
-        },
+      let user = await prisma.user.findFirst({
+        where: { email: userData.email ?? undefined  },
       });
 
+      if (!user) {
+        // Create the user if they do not exist
+        user = await prisma.user.create({
+          data: {
+            id: securityUtil.generateUUID(),
+            email: userData.email,
+            name: userData.name,
+            roleId: "13c0d05d-f6cb-11ef-a485-00163c34c678 ", 
+            status: "active",
+          },
+        });
+      }
+
+      // Generate a JWT token (modify payload as per your requirements)
+      const token = jwt.sign(
+        { id: user.id, email: user.email },
+        config.JWT_SECRET, 
+        { expiresIn: "1h" }
+      );
+
+      const responseData =  {
+        user,
+        token,
+      };
+      
       return serviceUtil.buildResult(
         true,
         httpStatusCodes.SUCCESS_OK,
         null,
-        user
+        responseData,
       );
     } catch (error) {
       console.error("Authentication error:", error);
