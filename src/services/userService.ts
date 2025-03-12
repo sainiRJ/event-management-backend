@@ -36,8 +36,8 @@ export default class UserService {
 
 
 			// check email exists or not
-			const emailExists = await prisma.user.findUnique({
-				where: {email: userBodyDTO.email},
+			const emailExists = await prisma.user.findFirst({
+				where: {email: userBodyDTO.email || undefined},
 			});
 
 			if (emailExists) {
