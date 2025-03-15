@@ -4,6 +4,7 @@ import {httpStatusCodes} from "../customTypes/networkTypes";
 import serviceUtil from "../utils/serviceUtil";
 import {iGenericServiceResult} from "../customTypes/commonServiceTypes";
 import {genericServiceErrors} from "../constants/errors/genericServiceErrors";
+import { error } from "console";
 
 export default class WeatherService {
 	private readonly geoBaseUrl =
@@ -11,24 +12,37 @@ export default class WeatherService {
 	private readonly weatherBaseUrl =
 		process.env.WEATHER_BASE_URL || "https://api.open-meteo.com/v1/forecast";
 
-	async getWeatherByCity(city: string, date?: string) {
+	async getWeatherByCity(city: string, eventDate?: string) {
 		try {
+			// Step 1: Get Geolocation for City
 			const geoResponse = await axios.get(this.geoBaseUrl, {
 				params: {q: city, format: "json", limit: 1},
 			});
+			const responseError = {
+				error: "LocationNotFound",
+				message: `Location '${city}' not found`};
 
 			if (!geoResponse.data.length) {
 				return serviceUtil.buildResult(
 					false,
-					httpStatusCodes.CLIENT_ERROR_NOT_FOUND, // Internal server error for any issues with Firebase or DB
-					genericServiceErrors.errors.ResourceNotFound
+					httpStatusCodes.CLIENT_ERROR_NOT_FOUND,
+					responseError,
 				);
 			}
 
 			const {lat, lon, display_name} = geoResponse.data[0];
-			const today = moment().format("YYYY-MM-DD");
-			const selectedDate = date || today;
 
+			// Step 2: Validate Event Date
+			const today = moment().format("YYYY-MM-DD");
+			let selectedDate = eventDate
+				? moment(eventDate).format("YYYY-MM-DD")
+				: today;
+
+			if (moment(selectedDate).isBefore(today)) {
+				selectedDate = today;
+			}
+
+			// Step 3: Fetch Weather Data
 			const weatherResponse = await axios.get(this.weatherBaseUrl, {
 				params: {
 					latitude: lat,
@@ -46,14 +60,20 @@ export default class WeatherService {
 				},
 			});
 
+			const weatherError = {
+				error: "UnavailableWeather",
+				message: "Weather data unavailable for the selected date."
+			}
+
 			if (!weatherResponse.data.daily?.temperature_2m_max) {
 				return serviceUtil.buildResult(
 					false,
-					httpStatusCodes.CLIENT_ERROR_NOT_FOUND, // Internal server error for any issues with Firebase or DB
-					genericServiceErrors.errors.ResourceNotFound
+					httpStatusCodes.CLIENT_ERROR_NOT_FOUND,
+					weatherError
 				);
 			}
 
+			// Step 4: Extract Weather Details
 			const maxTemp = weatherResponse.data.daily.temperature_2m_max[0];
 			const minTemp = weatherResponse.data.daily.temperature_2m_min[0];
 			const rainProbability =
@@ -61,17 +81,18 @@ export default class WeatherService {
 
 			let currentWeather;
 			if (selectedDate === today) {
-				const {temperature, windspeed} = weatherResponse.data.current_weather;
+				const {temperature, windspeed, weathercode} =
+					weatherResponse.data.current_weather;
 				currentWeather = {
-					temperature: `${parseInt(temperature) * 2 + 30}°F`,
+					temperature: `${temperature}°C`,
 					windSpeed: `${windspeed} km/h`,
-					condition: "Live Data",
+					condition: this.getWeatherCondition(weathercode),
 				};
 			} else {
 				const hourlyData = weatherResponse.data.hourly;
 				const middayIndex = Math.floor(hourlyData.time.length / 2);
 				currentWeather = {
-					temperature: `${parseInt(hourlyData.temperature_2m[middayIndex]) * 2 + 30}°F`,
+					temperature: `${hourlyData.temperature_2m[middayIndex]}°C`,
 					windSpeed: `${hourlyData.wind_speed_10m[middayIndex]} km/h`,
 					condition: this.getWeatherCondition(
 						hourlyData.weathercode[middayIndex]
@@ -79,15 +100,16 @@ export default class WeatherService {
 				};
 			}
 
+			// Step 5: Return Formatted Data
 			const weatherData = {
 				location: display_name,
 				date: selectedDate,
-				maxTemperature: `${parseInt(maxTemp) * 2 + 30}°F`,
-				minTemperature: `${parseInt(minTemp) * 2 + 30}°F`,
+				maxTemperature: `${maxTemp}°C`,
+				minTemperature: `${minTemp}°C`,
 				rainProbability: `${rainProbability}%`,
 				current: currentWeather,
 			};
-			// Return successful result
+
 			return serviceUtil.buildResult(
 				true,
 				httpStatusCodes.SUCCESS_OK,
@@ -95,11 +117,11 @@ export default class WeatherService {
 				weatherData
 			);
 		} catch (error) {
-			console.log(error);
+			console.error("Weather API Error:", error || error);
 			return serviceUtil.buildResult(
 				false,
-				httpStatusCodes.CLIENT_ERROR_BAD_REQUEST, // Internal server error for any issues with Firebase or DB
-				genericServiceErrors.errors.SomethingWentWrong
+				httpStatusCodes.SERVER_ERROR_INTERNAL_SERVER_ERROR,
+				// "Failed to fetch weather data. Please try again later."
 			);
 		}
 	}
@@ -110,9 +132,23 @@ export default class WeatherService {
 			1: "Mainly Clear",
 			2: "Partly Cloudy",
 			3: "Overcast",
+			45: "Fog",
+			48: "Rime Fog",
+			51: "Drizzle: Light",
+			53: "Drizzle: Moderate",
+			55: "Drizzle: Heavy",
 			61: "Rain: Slight",
 			63: "Rain: Moderate",
 			65: "Rain: Heavy",
+			71: "Snow: Light",
+			73: "Snow: Moderate",
+			75: "Snow: Heavy",
+			80: "Rain Showers: Slight",
+			81: "Rain Showers: Moderate",
+			82: "Rain Showers: Violent",
+			95: "Thunderstorm: Slight",
+			96: "Thunderstorm with Hail: Moderate",
+			99: "Thunderstorm with Hail: Heavy",
 		};
 		return conditions[code] || "Unknown Condition";
 	}

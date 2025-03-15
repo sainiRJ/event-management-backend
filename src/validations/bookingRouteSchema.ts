@@ -6,7 +6,7 @@ const bookingBodySchema = Joi.object({
 		.pattern(/^[0-9]{10,15}$/)
 		.required()
 		.label("Phone Number"),
-	eventDateTime: Joi.date().required().label("Event Date and Time"),
+		eventDate: Joi.date().required().label("Event Date and Time"),
 	serviceId: Joi.string().required().label("Event Type"),
 	venueAddress: Joi.string().required().label("Venue Address"),
 	decorationTheme: Joi.string().required().label("Decoration Theme"),

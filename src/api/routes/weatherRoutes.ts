@@ -9,7 +9,7 @@ const weatherService = new WeatherService();
 const weatherRoute: RouteType = (apiRouter) => {
     apiRouter.use("/weather", route);
     
-    route.post(
+    route.get(
         "/city",
         celebrate({
             [Segments.QUERY]: Joi.object({

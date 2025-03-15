@@ -1,7 +1,7 @@
 export interface iBookingCreateDTO {
     customerName: string;
     phoneNumber: string;
-    eventDateTime: string;
+    eventDate: string;
     serviceId: string;
     venueAddress: string; 
     decorationTheme: string;
@@ -21,7 +21,7 @@ export interface iBookingCreateDTO {
     budget?: string;
     customerName?: string;
     phoneNumber?: string;
-    eventDateTime?: string; // ISO date string
+    eventDate?: string; // ISO date string
     eventName?: string;
     venueAddress?: string;
 }

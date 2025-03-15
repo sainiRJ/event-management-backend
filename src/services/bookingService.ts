@@ -58,7 +58,7 @@ export default class BookingService {
 						id: securityUtil.generateUUID(),
 						customerName: bookingBodyDTO.customerName,
 						phoneNumber: bookingBodyDTO.phoneNumber,
-						eventDate: new Date(bookingBodyDTO.eventDateTime),
+						eventDate: new Date(bookingBodyDTO.eventDate),
 						eventName: bookingBodyDTO.eventName,
 						location: bookingBodyDTO.venueAddress,
 						createdAt: new Date(),
@@ -144,7 +144,7 @@ export default class BookingService {
 				phoneNumber: booking.events.phoneNumber,
 				eventName: booking.events.eventName,
 				eventDate: booking.events.eventDate,
-				location: booking.events.location,
+				venueAddress: booking.events.location,
 			}));
 	
 			// Return successful result
@@ -225,7 +225,7 @@ export default class BookingService {
 	
 			if (updateDTO.customerName) eventUpdateData.customerName = updateDTO.customerName;
 			if (updateDTO.phoneNumber) eventUpdateData.phoneNumber = updateDTO.phoneNumber;
-			if (updateDTO.eventDateTime) eventUpdateData.eventDate = new Date(updateDTO.eventDateTime);
+			if (updateDTO.eventDate) eventUpdateData.eventDate = new Date(updateDTO.eventDate);
 			if (updateDTO.eventName) eventUpdateData.eventName = updateDTO.eventName;
 			if (updateDTO.venueAddress) eventUpdateData.location = updateDTO.venueAddress;
 	
