@@ -5,6 +5,7 @@ import serviceRoute  from "./routes/serviceRoutes";
 import statusRoute from "./routes/statusRoutes"
 import employeeRoute from "./routes/employeeRoutes";
 import authRoute from "./routes/authRoutes"
+import weatherRoute from "./routes/weatherRoutes";
 
 
 const getRouter = (): Router => {
@@ -17,6 +18,7 @@ const getRouter = (): Router => {
 	statusRoute(apiRouter);
 	employeeRoute(apiRouter);
 	authRoute(apiRouter);
+	weatherRoute(apiRouter);
 
 	return apiRouter;
 };

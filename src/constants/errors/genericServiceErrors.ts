@@ -64,6 +64,10 @@ const genericServiceErrors = asTypeIServiceError({
 			error: "EmailAlreadyExists",
             message: "Email already exists",
         },
+		InvalidCredentials: {
+			error: "InvalidCredentials",
+			message: "Invalid Credentials"
+		},
 	}
 });
 

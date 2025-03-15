@@ -12,5 +12,8 @@ async function hashPassword(password: string): Promise<string> {
         const hashedPassword = await bcrypt.hash(password, 10);
         return hashedPassword;
     }
+async function comparePassword(plainTextPassword: string, hashedPassword: string): Promise<boolean> {
+        return bcrypt.compare(plainTextPassword, hashedPassword);
+      }
     
-export default {generateUUID, hashPassword};
+export default {generateUUID, hashPassword, comparePassword};
