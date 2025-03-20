@@ -1,4 +1,5 @@
 import { NullableString } from "../commonTypes";
+import { Decimal } from '@prisma/client/runtime/library';
 
 export interface iCreateEmployeeDTO{
     name: string;
@@ -24,4 +25,21 @@ export interface iEmployeeUpdateDTO {
     statusId?: string;
     joinedDate?: string;
 
+}
+
+
+export interface iEmployeeData {
+    id: string;
+    name: string;
+    email?: NullableString;
+    phoneNumber: NullableString;
+    joinedDate: Date;
+    status: string;
+    salary: Decimal;
+    designation: string;
+}
+
+export interface iEmployeeResponse {
+    employeeDetails: Record<string, iEmployeeData>;
+    ids: string[];
 }

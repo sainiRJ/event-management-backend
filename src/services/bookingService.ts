@@ -102,6 +102,7 @@ export default class BookingService {
 					id: true,
 					totalCost: true,
 					bookedAt: true,
+					advancePayment: true,
 					events: {
 						select: {
 							eventName: true,
@@ -136,6 +137,7 @@ export default class BookingService {
 			const transformedBookings = bookings.map(booking => ({
 				id: booking.id,
 				totalCost: booking.totalCost,
+				advancePayment: booking.advancePayment,
 				bookedAt: booking.bookedAt,
 				bookingStatus: booking.bookingStatus.name,
 				paymentStatus: booking.paymentStatus.name,

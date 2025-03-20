@@ -8,6 +8,8 @@ import {genericServiceErrors} from "../constants/errors/genericServiceErrors";
 import {
 	iCreateEmployeeDTO,
 	iEmployeeUpdateDTO,
+	iEmployeeResponse,
+	iEmployeeData,
 } from "../customTypes/appDataTypes/employeeTypes";
 
 
@@ -98,6 +100,7 @@ export default class EmployeeService {
 				where: {id: employeeId},
 				include: {
 					users: true, // Fetch user details
+					statuses: true,
 				},
 			});
 
@@ -110,11 +113,24 @@ export default class EmployeeService {
 				);
 			}
 
+			console.log(employee)
+
+			const employeeResponse: iEmployeeData = ({
+				id: employee.id,
+				name: employee.users.name,
+				email: employee.users.email || '',
+				phoneNumber: employee.users.phoneNumber,
+				joinedDate: employee.joinedDate,
+				status: employee.statuses.name,
+				salary: employee.salary,
+				designation: employee.designation,
+			})
+
 			return serviceUtil.buildResult(
 				true,
 				httpStatusCodes.SUCCESS_OK,
 				null,
-				employee
+				employeeResponse
 			);
 		} catch (error: any) {
 			console.error(error);
@@ -123,6 +139,68 @@ export default class EmployeeService {
 				httpStatusCodes.SERVER_ERROR_INTERNAL_SERVER_ERROR,
 				genericServiceErrors.errors.SomethingWentWrong
 			);
+		}
+	}
+
+	/*
+		* Get All employees list
+	*/
+
+	public async getAllEmployee(): Promise<iGenericServiceResult<iEmployeeResponse>>{
+		try {
+			const employeesData = await prisma.employee.findMany({
+				include: {
+					users: true, // Fetch user details
+					statuses: true,
+				},
+			});
+
+			if (!employeesData) {
+				return serviceUtil.buildResult(
+					false,
+					httpStatusCodes.CLIENT_ERROR_NOT_FOUND,
+					genericServiceErrors.generic.EmployeeDoesNotExist
+
+				);
+			}
+
+			console.log(employeesData)
+
+			// Transform data into the required structure
+			const employeeDetails: Record<string, iEmployeeData> = {};
+			const ids: string[] = [];
+
+			employeesData.forEach(employee => {
+				const employeeObj: iEmployeeData = {
+					id: employee.id,
+					name: employee.users.name,
+					email: employee.users.email || "",
+					phoneNumber: employee.users.phoneNumber,
+					joinedDate: employee.joinedDate,
+					status: employee.statuses.name,
+					salary: employee.salary,
+					designation: employee.designation,
+				};
+	
+				employeeDetails[employee.id] = employeeObj;
+				ids.push(employee.id);
+			});
+			
+			return serviceUtil.buildResult(
+				true,
+				httpStatusCodes.SUCCESS_OK,
+				null,
+				{ employeeDetails, ids }
+			);
+			
+		} catch (error: any) {
+			console.error(error);
+			return serviceUtil.buildResult(
+				false,
+				httpStatusCodes.SERVER_ERROR_INTERNAL_SERVER_ERROR,
+				genericServiceErrors.errors.SomethingWentWrong
+			);
+			
 		}
 	}
 

@@ -11,18 +11,18 @@ const employeeRoute: RouteType = (apiRouter) => {
 	apiRouter.use("/employee", route);
 
 	// Get All Employees
-	// route.get(
-	// 	"/all",
-	// 	async (req: iRequest<any>, res: iResponse<any>, next: NextFunction) => {
-	// 		try {
-	// 			const {httpStatusCode, responseBody} =
-	// 				await employeeService.allEmployees();
-	// 			res.status(httpStatusCode).json(responseBody);
-	// 		} catch (error) {
-	// 			next(error);
-	// 		}
-	// 	}
-	// );
+	route.get(
+		"/all",
+		async (req: iRequest<any>, res: iResponse<any>, next: NextFunction) => {
+			try {
+				const {httpStatusCode, responseBody} =
+					await employeeService.getAllEmployee();
+				res.status(httpStatusCode).json(responseBody);
+			} catch (error) {
+				next(error);
+			}
+		}
+	);
 
 	// Create Employee
 	route.post(

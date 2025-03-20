@@ -58,7 +58,7 @@ const bookingRoute: RouteType = (apiRouter) => {
             [Segments.PARAMS]: Joi.object({
                 bookingId: Joi.string().uuid().required()
             }),
-            [Segments.BODY]: bookingBodySchema, // User schema for validation
+            // [Segments.BODY]: bookingBodySchema,
         }),
         async (
             req: iRequest<iBookingCreateDTO>,
