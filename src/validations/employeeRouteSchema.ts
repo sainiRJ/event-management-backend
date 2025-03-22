@@ -29,7 +29,7 @@ const createEmployeeBodySchema = Joi.object({
 	  }),
 
 	roleId: Joi.string()
-	.required()
+	// .required()
 	.messages({" any.required" : "roleId will be required"}),
 
 	designation: Joi.string()

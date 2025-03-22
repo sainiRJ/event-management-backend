@@ -23,7 +23,7 @@ export default class EmployeeService {
 		try {
 			// check roleId and statusId exist in the db or not
 			const roleExists = await prisma.role.findUnique({
-                where: { id: employeeBodyDTO.roleId },
+                where: { id: employeeBodyDTO.roleId || "13c0b54d-f6cb-11ef-a485-00163c34c678" },
             });
             const statusExists = await prisma.status.findUnique({
                 where: { id: employeeBodyDTO.statusId },
@@ -55,7 +55,7 @@ export default class EmployeeService {
 						password: employeeBodyDTO.password, // Hash password before storing
 						phoneNumber: employeeBodyDTO.mobileNumber,
 						status: "active",
-						roleId: employeeBodyDTO.roleId,
+						roleId: employeeBodyDTO.roleId || "13c0b54d-f6cb-11ef-a485-00163c34c678",
 					},
 				});
 
