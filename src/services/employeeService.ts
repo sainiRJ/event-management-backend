@@ -149,6 +149,11 @@ export default class EmployeeService {
 	public async getAllEmployee(): Promise<iGenericServiceResult<iEmployeeResponse>>{
 		try {
 			const employeesData = await prisma.employee.findMany({
+				where: {
+					users:{
+						status: "active"
+					}
+				},
 				include: {
 					users: true, // Fetch user details
 					statuses: true,
