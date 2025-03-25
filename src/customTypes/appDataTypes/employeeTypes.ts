@@ -5,8 +5,8 @@ export interface iCreateEmployeeDTO{
     name: string;
     email?: NullableString;
     password?: NullableString;
-    mobileNumber: NullableString;
-    roleId: string;
+    phoneNumber: NullableString;
+    roleId?: string;
     designation: string;
     salary: string;
     statusId: string;

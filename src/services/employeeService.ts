@@ -53,7 +53,7 @@ export default class EmployeeService {
 						name: employeeBodyDTO.name,
 						email: employeeBodyDTO.email,
 						password: employeeBodyDTO.password, // Hash password before storing
-						phoneNumber: employeeBodyDTO.mobileNumber,
+						phoneNumber: employeeBodyDTO.phoneNumber,
 						status: "active",
 						roleId: employeeBodyDTO.roleId || "13c0b54d-f6cb-11ef-a485-00163c34c678",
 					},

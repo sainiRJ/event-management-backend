@@ -21,7 +21,7 @@ const createEmployeeBodySchema = Joi.object({
 	  .messages({
 		"string.min": "Password must be at least 8 characters long",
 	  }),
-	mobile: Joi.string()
+	phoneNumber: Joi.string()
 	  .pattern(/^\d{10}$/) // Assumes a 10-digit number format
 	  .optional()
 	  .messages({
@@ -29,7 +29,7 @@ const createEmployeeBodySchema = Joi.object({
 	  }),
 
 	roleId: Joi.string()
-	// .required()
+	.optional()
 	.messages({" any.required" : "roleId will be required"}),
 
 	designation: Joi.string()
