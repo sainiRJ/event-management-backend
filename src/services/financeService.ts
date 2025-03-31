@@ -74,6 +74,10 @@ export default class FinanceService {
 			? new Date(monthlyIncomeDTO.toDate)
 			: currentDate;
 
+		whereClause.statusId = {
+			not: "ddf77cb7-f355-11ef-a485-00163c34c678",
+		};
+
 		if (fromDate) {
 			whereClause.events = {
 				...whereClause.events,
@@ -89,7 +93,7 @@ export default class FinanceService {
 		}
 
 		if (monthlyIncomeDTO.bookingStatusId) {
-			whereClause.statusId = monthlyIncomeDTO.bookingStatusId;
+			whereClause.statusId.equals = monthlyIncomeDTO.bookingStatusId;
 		}
         if(monthlyIncomeDTO.paymentStatusId) {
         	whereClause.paymentStatusId = monthlyIncomeDTO.paymentStatusId;

@@ -6,7 +6,17 @@ const genericServiceErrors = asTypeIServiceError({
 			error: "NoAuthorizationToken",
 			message: "No authorization token provided",
 		},
+
+		FailedToAuthenticate:{
+			error: "FailedToAuthenticate",
+			message: "Failed to authenticate the token",
+		},
+		InvalidRefreshToken:{
+			error: "InvalidRefreshToken",
+			message: "Invalid Refresh Token",
+		}
 	},
+
 
 	errors: {
 		ResourceNotFound: {

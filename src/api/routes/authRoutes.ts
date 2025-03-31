@@ -3,6 +3,7 @@ import {Segments, celebrate} from "celebrate";
 import {RouteType, iRequest, iResponse} from "../../customTypes/expressTypes";
 import {userBodySchema, userLoginBodySchema} from "../../validations/authRouteSchema"
 import AuthService from "../../services/authService";
+import { authenticateToken } from "../../middleware/authMiddleware";
 import {Joi} from "celebrate";
 import { configDotenv } from "dotenv";
 
@@ -72,6 +73,21 @@ const authRoute: RouteType = (apiRouter) =>{
             } catch (error) {
                 next(error);
             }
+        }
+    )
+
+    route.get(
+        "/user",
+        authenticateToken,
+        async (
+            req: iRequest<any>,
+            res: iResponse<any>,
+            next: NextFunction
+        ) => {
+            const id= req.user?.id
+            const email = req.user?.email
+            const {httpStatusCode, responseBody} = await authService.userInfo(id, email);
+            res.status(httpStatusCode).json(responseBody);
         }
     )
 }

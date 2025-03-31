@@ -20,6 +20,7 @@ type RouteType = (apiRouter: Router) => void;
  */
 interface iRequest<T = void> extends Request {
 	body: T;
+	user?: { id: string; email: string };
 }
 
 /**

@@ -1,12 +1,16 @@
 import jwt from "jsonwebtoken";
 import { config } from "../config/config";
 import { Request, Response, NextFunction } from "express";
+import { httpStatusCodes } from "../customTypes/networkTypes";
+import serviceUtil from "../utils/serviceUtil";
+import { genericServiceErrors } from "../constants/errors/genericServiceErrors";
 
-export const authenticateToken = (req: Request, res: Response, next: NextFunction) => {
+export const authenticateToken = (req: Request, res: Response, next: NextFunction): any => {
   const token = req.headers.authorization?.split(" ")[1];
 
-  if (!token) {
-    return res.status(401).json({ message: "Unauthorized: No token provided" });
+  if (!token) { return res
+    .status(httpStatusCodes.CLIENT_ERROR_UNAUTHORIZED)
+    .json(serviceUtil.buildResult(false, httpStatusCodes.CLIENT_ERROR_UNAUTHORIZED, genericServiceErrors.auth.NoAuthorizationToken).responseBody);return res.status(401).json({ message: "Unauthorized: No token provided" });
   }
 
   try {
@@ -14,6 +18,8 @@ export const authenticateToken = (req: Request, res: Response, next: NextFunctio
     (req as any).user = decoded; // Attach decoded user info to request
     next();
   } catch (error) {
-    return res.status(403).json({ message: "Forbidden: Invalid token" });
+    res
+      .status(httpStatusCodes.CLIENT_ERROR_UNAUTHORIZED)
+      .json(serviceUtil.buildResult(false, httpStatusCodes.CLIENT_ERROR_UNAUTHORIZED, genericServiceErrors.auth.FailedToAuthenticate).responseBody);
   }
 };

@@ -7,6 +7,8 @@ import {genericServiceErrors} from "../constants/errors/genericServiceErrors";
 import jwt from "jsonwebtoken";
 import {config} from "../config/config";
 import {response} from "express";
+import {iGenericServiceResult} from "../customTypes/commonServiceTypes";
+import {promiseHooks} from "v8";
 
 export default class AuthService {
 	public async authenticateUser(userData: iUserDTO) {
@@ -103,28 +105,24 @@ export default class AuthService {
 					genericServiceErrors.generic.EmailAlreadyExists
 				);
 			}
-        let hashedPassword: string = ""
+			let hashedPassword: string = "";
 
-        // Hash password before storing
-        if(userData.password){
+			// Hash password before storing
+			if (userData.password) {
+				hashedPassword = await securityUtil.hashPassword(userData.password);
+			}
 
-          hashedPassword = await securityUtil.hashPassword(
-            userData.password
-          );
-        }
-      
-
-      const user = await prisma.user.create({
-        data: {
-          id: securityUtil.generateUUID(),
-          email: userData.email,
-          name: userData.name,
-          roleId: "13c0d05d-f6cb-11ef-a485-00163c34c678 ",
-          status: "active",
-          password: hashedPassword,
-          phoneNumber: userData.phone,
-        },
-      });
+			const user = await prisma.user.create({
+				data: {
+					id: securityUtil.generateUUID(),
+					email: userData.email,
+					name: userData.name,
+					roleId: "13c0d05d-f6cb-11ef-a485-00163c34c678 ",
+					status: "active",
+					password: hashedPassword,
+					phoneNumber: userData.phone,
+				},
+			});
 
 			const responseData = {message: "User cretaed successfully"};
 
@@ -144,92 +142,181 @@ export default class AuthService {
 		}
 	}
 
-  public async login(userData: { emailOrPhone: string; password: string }) {
-    try {
-      if (!userData) {
-        return serviceUtil.buildResult(
-          false,
-          httpStatusCodes.CLIENT_ERROR_BAD_REQUEST,
-          genericServiceErrors.errors.SomethingWentWrong
-        );
-      }
+	public async login(userData: {emailOrPhone: string; password: string}) {
+		try {
+			if (!userData) {
+				return serviceUtil.buildResult(
+					false,
+					httpStatusCodes.CLIENT_ERROR_BAD_REQUEST,
+					genericServiceErrors.errors.SomethingWentWrong
+				);
+			}
 
-      console.log("Login request: ", userData);
+			console.log("Login request: ", userData);
 
-      let emailOrPhone = userData.emailOrPhone;
+			let emailOrPhone = userData.emailOrPhone;
 
-      // If input is a phone number (digits only), add country code prefix
-      if (/^\d{10}$/.test(emailOrPhone)) {
-        emailOrPhone = `+91${emailOrPhone}`;
-      }
-      console.log(emailOrPhone)
-      // Check if input is email or phone
-      const user = await prisma.user.findFirst({
-        where: {
-          OR: [
-            { email: emailOrPhone },
-            { phoneNumber: emailOrPhone },
-          ],
-        },
-      });
+			// If input is a phone number (digits only), add country code prefix
+			if (/^\d{10}$/.test(emailOrPhone)) {
+				emailOrPhone = `+91${emailOrPhone}`;
+			}
+			console.log(emailOrPhone);
+			// Check if input is email or phone
+			const user = await prisma.user.findFirst({
+				where: {
+					OR: [{email: emailOrPhone}, {phoneNumber: emailOrPhone}],
+				},
+			});
 
-      if (!user) {
-        return serviceUtil.buildResult(
-          false,
-          httpStatusCodes.CLIENT_ERROR_UNAUTHORIZED,
-          genericServiceErrors.generic.UserDoesNotExist
-        );
-      }
+			if (!user) {
+				return serviceUtil.buildResult(
+					false,
+					httpStatusCodes.CLIENT_ERROR_UNAUTHORIZED,
+					genericServiceErrors.generic.UserDoesNotExist
+				);
+			}
 
-      if(!user.password){
-          return serviceUtil.buildResult(
-            false,
-            httpStatusCodes.CLIENT_ERROR_UNAUTHORIZED,
-            genericServiceErrors.generic.InvalidCredentials
-          );  
-      }
+			if (!user.password) {
+				return serviceUtil.buildResult(
+					false,
+					httpStatusCodes.CLIENT_ERROR_UNAUTHORIZED,
+					genericServiceErrors.generic.InvalidCredentials
+				);
+			}
 
-      // Verify password
-      const isPasswordValid = await securityUtil.comparePassword(
-        userData.password,
-        user.password
-      );
-      if (!isPasswordValid) {
-        return serviceUtil.buildResult(
-          false,
-          httpStatusCodes.CLIENT_ERROR_UNAUTHORIZED,
-          genericServiceErrors.generic.InvalidCredentials
-        );
-      }
+			// Verify password
+			const isPasswordValid = await securityUtil.comparePassword(
+				userData.password,
+				user.password
+			);
+			if (!isPasswordValid) {
+				return serviceUtil.buildResult(
+					false,
+					httpStatusCodes.CLIENT_ERROR_UNAUTHORIZED,
+					genericServiceErrors.generic.InvalidCredentials
+				);
+			}
 
-      const userResponse = {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-      }
+			const userResponse = {
+				id: user.id,
+				name: user.name,
+				email: user.email,
+			};
 
-      // Generate a JWT token
-      const token = jwt.sign(
-        { id: user.id, email: user.email },
-        config.JWT_SECRET,
-        { expiresIn: "1h" }
-      );
+			// Generate a JWT token
+			const token = jwt.sign(
+				{id: user.id, email: user.email},
+				config.JWT_SECRET,
+				{expiresIn: "1h"}
+			);
 
-      const responseData = { userResponse, token };
+			const responseData = {userResponse, token};
 
-      return serviceUtil.buildResult(
-        true,
-        httpStatusCodes.SUCCESS_OK,
-        null,
-        responseData
-      );
-    } catch (error) {
-      console.error("Login error:", error);
-      return serviceUtil.buildResult(
-        false,
-        httpStatusCodes.SERVER_ERROR_INTERNAL_SERVER_ERROR,
-        genericServiceErrors.errors.SomethingWentWrong
-      );
-    }
-  }
+			return serviceUtil.buildResult(
+				true,
+				httpStatusCodes.SUCCESS_OK,
+				null,
+				responseData
+			);
+		} catch (error) {
+			console.error("Login error:", error);
+			return serviceUtil.buildResult(
+				false,
+				httpStatusCodes.SERVER_ERROR_INTERNAL_SERVER_ERROR,
+				genericServiceErrors.errors.SomethingWentWrong
+			);
+		}
+	}
+
+	public async userInfo(
+		id: string | undefined,
+		email: string | undefined
+	): Promise<iGenericServiceResult<any>> {
+		let userResponse: any;
+
+		const userExist = await prisma.user.findUnique({
+			where: {
+				id: id,
+				status: "active",
+			},
+			select: {
+				id: true,
+				name: true,
+				email: true,
+				phoneNumber: true,
+				roles: {
+					select: {
+						id: true,
+						roleName: true,
+					},
+				},
+			},
+		});
+		if (!userExist) {
+			return serviceUtil.buildResult(
+				false,
+				httpStatusCodes.CLIENT_ERROR_UNAUTHORIZED,
+				genericServiceErrors.generic.UserDoesNotExist
+			);
+		}
+
+		userResponse = {
+			userId: userExist.id,
+			name: userExist.name,
+			email: userExist.email,
+			phoneNumber: userExist.phoneNumber,
+			role: userExist.roles.roleName,
+		};
+
+		/*
+	  check user is employee or vendor
+	  if user is employee then send all other employee data
+	*/
+		if (userExist.roles.roleName === "employee") {
+			const employee = await prisma.employee.findFirst({
+				where: {
+					userId: userExist.id,
+				},
+				select: {
+					id: true,
+					designation: true,
+					salary: true,
+					joinedDate: true,
+					statuses: {
+						select: {
+							id: true,
+							name: true,
+						},
+					},
+				},
+			});
+
+			userResponse = {
+				...userResponse, 
+				employeeId: employee?.id,
+				salary: employee?.salary,
+				designation: employee?.designation,
+				joinedDate: employee?.joinedDate,
+				status: employee?.statuses.name,
+			};
+		}
+
+		console.log(userResponse);
+
+		try {
+			return serviceUtil.buildResult(
+				true,
+				httpStatusCodes.SUCCESS_OK,
+				null,
+				userResponse
+			);
+		} catch (error) {
+			console.log(error);
+			return serviceUtil.buildResult(
+				true,
+				httpStatusCodes.SERVER_ERROR_INTERNAL_SERVER_ERROR,
+				genericServiceErrors.errors.SomethingWentWrong
+			);
+		}
+	}
 }
