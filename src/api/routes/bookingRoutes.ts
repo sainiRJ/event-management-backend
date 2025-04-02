@@ -4,6 +4,7 @@ import {RouteType, iRequest, iResponse} from "../../customTypes/expressTypes";
 import {bookingBodySchema} from "../../validations/bookingRouteSchema";
 import {iBookingCreateDTO} from "../../customTypes/appDataTypes/bookingTypes"
 import BookingService from "../../services/bookingService";
+import { authenticateToken } from "../../middleware/authMiddleware";
 import {Joi} from "celebrate";
 const route = Router();
 
@@ -13,6 +14,7 @@ const bookingRoute: RouteType = (apiRouter) => {
     apiRouter.use("/booking", route);
     route.get(
             "/all",
+            authenticateToken,
             async (
                 req: iRequest<any>,
                 res: iResponse<any>,

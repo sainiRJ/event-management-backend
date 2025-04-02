@@ -48,15 +48,34 @@ export default class AuthService {
 			}
 
 			// Generate a JWT token (modify payload as per your requirements)
-			const token = jwt.sign(
+			const accessToken = jwt.sign(
 				{id: user.id, email: user.email},
 				config.JWT_SECRET,
 				{expiresIn: "1h"}
 			);
 
+			const refreshToken = jwt.sign(
+				{id: user.id, email: user.email},
+				config.JWT_SECRET,
+				{expiresIn: "7d"}
+			);
+
+			const tokenExpireDate = new Date();
+			tokenExpireDate.setDate(tokenExpireDate.getDate() + 7);
+
+			await prisma.refreshToken.create({
+				data: {
+					id: securityUtil.generateUUID(),
+					userId: user.id,
+					token: refreshToken,
+					expiresAt: tokenExpireDate,
+					createdAt: new Date(),
+				},
+			});
+
 			const responseData = {
 				user,
-				token,
+				token: {accessToken, refreshToken, tokenExpireDate},
 			};
 
 			return serviceUtil.buildResult(
@@ -204,13 +223,34 @@ export default class AuthService {
 			};
 
 			// Generate a JWT token
-			const token = jwt.sign(
+			const accessToken = jwt.sign(
 				{id: user.id, email: user.email},
 				config.JWT_SECRET,
-				{expiresIn: "1h"}
+				{expiresIn: "1m"}
 			);
 
-			const responseData = {userResponse, token};
+			const refreshToken = jwt.sign(
+				{id: user.id, email: user.email},
+				config.JWT_SECRET,
+				{expiresIn: "7d"}
+			);
+
+			const tokenExpireDate = new Date();
+			tokenExpireDate.setDate(tokenExpireDate.getDate() + 7);
+
+			await prisma.refreshToken.create({
+				data: {
+					id: securityUtil.generateUUID(),
+					userId: user.id,
+					token: refreshToken,
+					expiresAt: tokenExpireDate,
+					createdAt: new Date(),
+				},
+			});
+			const responseData = {
+				userResponse,
+				token: {accessToken, refreshToken, tokenExpireDate},
+			};
 
 			return serviceUtil.buildResult(
 				true,
@@ -269,9 +309,9 @@ export default class AuthService {
 		};
 
 		/*
-	  check user is employee or vendor
-	  if user is employee then send all other employee data
-	*/
+	  		check user is employee or vendor
+	  		if user is employee then send all other employee data
+		*/
 		if (userExist.roles.roleName === "employee") {
 			const employee = await prisma.employee.findFirst({
 				where: {
@@ -292,7 +332,7 @@ export default class AuthService {
 			});
 
 			userResponse = {
-				...userResponse, 
+				...userResponse,
 				employeeId: employee?.id,
 				salary: employee?.salary,
 				designation: employee?.designation,
@@ -309,6 +349,71 @@ export default class AuthService {
 				httpStatusCodes.SUCCESS_OK,
 				null,
 				userResponse
+			);
+		} catch (error) {
+			console.log(error);
+			return serviceUtil.buildResult(
+				true,
+				httpStatusCodes.SERVER_ERROR_INTERNAL_SERVER_ERROR,
+				genericServiceErrors.errors.SomethingWentWrong
+			);
+		}
+	}
+
+	public async getAccessToken(
+		userDTO: any
+	): Promise<iGenericServiceResult<any>> {
+		try {
+			const tokenData = await prisma.refreshToken.findFirst({
+				where: {
+					token: userDTO.token,
+					userId: userDTO.id,
+				},
+			});
+
+			let token: any;
+
+			if (tokenData && tokenData.expiresAt > new Date()) {
+				const accessToken = jwt.sign(
+					{id: userDTO.id, email: userDTO.email},
+					config.JWT_SECRET,
+					{expiresIn: "1h"}
+				);
+
+				token = {accessToken};
+
+				// const refreshToken = jwt.sign(
+				// 	{id: userDTO.id, email: userDTO.email},
+				// 	config.JWT_SECRET,
+				// 	{expiresIn: "7d"}
+				// );
+
+				// const tokenExpireDate = new Date();
+				// tokenExpireDate.setDate(tokenExpireDate.getDate() + 7);
+
+				// token= {
+				// 	accessToken,
+				// 	refreshToken,
+				// 	tokenExpireDate,
+
+				// }
+
+				// await prisma.refreshToken.update({
+				// 	where: {
+				// 		id: tokenData.id
+				// 	},
+				// 	data: {
+				// 		id: securityUtil.generateUUID(),
+				// 		token: refreshToken,
+				// 		expiresAt: tokenExpireDate,
+				// 	},
+				// });
+			}
+			return serviceUtil.buildResult(
+				true,
+				httpStatusCodes.SUCCESS_OK,
+				null,
+				token
 			);
 		} catch (error) {
 			console.log(error);

@@ -90,6 +90,22 @@ const authRoute: RouteType = (apiRouter) =>{
             res.status(httpStatusCode).json(responseBody);
         }
     )
+    route.post(
+        "/refresh-token",
+        authenticateToken,
+        async (
+            req: iRequest<any>,
+            res: iResponse<any>,
+            next: NextFunction
+        ) => {
+            const id= req.user?.id
+            const email = req.user?.email
+            const userData = {id, email}
+            const {httpStatusCode, responseBody} = await authService.getAccessToken(userData);
+            res.status(httpStatusCode).json(responseBody);
+        }
+
+    )
 }
 
 

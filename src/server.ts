@@ -1,5 +1,6 @@
 import express, { Application } from 'express';
 import bodyParser from 'body-parser';
+import cookieParser from "cookie-parser";
 import cors from 'cors';
 import loader from './loaders/index';
 import dotenv from 'dotenv';
@@ -10,6 +11,7 @@ console.log("port number", process.env.PORT)
 const PORT: string | number = process.env.PORT || 3080;
 
 const app: Application = express();
+app.use(cookieParser());
 
 app.use(bodyParser.json());
 
