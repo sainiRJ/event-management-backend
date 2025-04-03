@@ -13,6 +13,13 @@ export default class BookingService {
 		bookingBodyDTO: iBookingCreateDTO
 	): Promise<iGenericServiceResult<iBookingCreateDTO>> {
 		try{
+			if(!bookingBodyDTO.userId){
+				return serviceUtil.buildResult(
+					false,
+					httpStatusCodes.CLIENT_ERROR_BAD_REQUEST, // Internal server error for any issues with Firebase or DB
+					genericServiceErrors.generic.InvalidCredentials
+				);
+			}
 			/*
 			verify service, status, and payment_status exist or not
 			*/
@@ -74,7 +81,8 @@ export default class BookingService {
 						statusId: bookingBodyDTO.bookingStatusId,
 						totalCost: bookingBodyDTO.budget,
 						advancePayment: bookingBodyDTO.advancePayment,
-						paymentStatusId: bookingBodyDTO.paymentStatusId
+						paymentStatusId: bookingBodyDTO.paymentStatusId,
+						vendorId: bookingBodyDTO.userId
 					}
 				})
 
@@ -95,9 +103,12 @@ export default class BookingService {
 			);
 		}
 	}
-	public async allBooking(): Promise<iGenericServiceResult<any[]>> {
+	public async allBooking(userId: string | undefined): Promise<iGenericServiceResult<any[]>> {
 		try {
 			const bookings = await prisma.bookings.findMany({
+				where: {
+					vendorId: userId,
+				},
 				select: {
 					id: true,
 					totalCost: true,

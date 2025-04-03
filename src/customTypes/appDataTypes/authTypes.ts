@@ -6,7 +6,7 @@ export interface iUserDTO {
     family_name?: string;
     picture?: string;
     verified_email?: boolean;
-    phone?: string;
+    phoneNumber?: string;
     password?: string;
   }
   

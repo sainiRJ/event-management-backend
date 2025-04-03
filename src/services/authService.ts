@@ -20,7 +20,6 @@ export default class AuthService {
 					genericServiceErrors.errors.SomethingWentWrong
 				);
 			}
-			console.log("userData", userData);
 
 			if (!userData.email) {
 				return serviceUtil.buildResult(
@@ -103,7 +102,6 @@ export default class AuthService {
 					genericServiceErrors.errors.SomethingWentWrong
 				);
 			}
-			console.log("userData", userData);
 
 			if (!userData.email) {
 				return serviceUtil.buildResult(
@@ -139,7 +137,7 @@ export default class AuthService {
 					roleId: "13c0d05d-f6cb-11ef-a485-00163c34c678 ",
 					status: "active",
 					password: hashedPassword,
-					phoneNumber: userData.phone,
+					phoneNumber: userData.phoneNumber,
 				},
 			});
 
@@ -171,7 +169,6 @@ export default class AuthService {
 				);
 			}
 
-			console.log("Login request: ", userData);
 
 			let emailOrPhone = userData.emailOrPhone;
 
@@ -179,7 +176,6 @@ export default class AuthService {
 			if (/^\d{10}$/.test(emailOrPhone)) {
 				emailOrPhone = `+91${emailOrPhone}`;
 			}
-			console.log(emailOrPhone);
 			// Check if input is email or phone
 			const user = await prisma.user.findFirst({
 				where: {
@@ -341,7 +337,6 @@ export default class AuthService {
 			};
 		}
 
-		console.log(userResponse);
 
 		try {
 			return serviceUtil.buildResult(

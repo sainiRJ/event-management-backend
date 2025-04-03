@@ -7,7 +7,6 @@ import { genericServiceErrors } from "../constants/errors/genericServiceErrors";
 
 export const authenticateToken = (req: Request, res: Response, next: NextFunction): any => {
   const token = req.headers.authorization?.split(" ")[1] || req.cookies?.refresh_token;
-  console.log(req.cookies)
 
   if (!token) { return res
     .status(httpStatusCodes.CLIENT_ERROR_UNAUTHORIZED)

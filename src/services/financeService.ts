@@ -11,7 +11,6 @@ export default class FinanceService {
 	public async allFinance(
 		monthlyIncomeDTO: iMonthlyIncomeDTO
 	): Promise<iGenericServiceResult<any>> {
-		console.log(monthlyIncomeDTO);
 
 		/*
 			verify service, status, and payment_status exist or not

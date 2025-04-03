@@ -11,6 +11,7 @@ export interface iBookingCreateDTO {
     paymentStatusId: string;
     eventName: string;
     advancePayment: string;
+    userId: string | undefined
 
   }
 

@@ -9,7 +9,7 @@ const userBodySchema = Joi.object({
   picture: Joi.string().optional(),
   given_name: Joi.string().optional(),
   family_name: Joi.string().optional(),
-  phone: Joi.string()
+  phoneNumber: Joi.string()
     // .pattern(/^[0-9]{10,15}$/)
     .optional()
     .allow(""),

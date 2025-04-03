@@ -22,7 +22,8 @@ const bookingRoute: RouteType = (apiRouter) => {
             ) => {
                 // Let TypeScript infer the return type
                 try {
-                    const {httpStatusCode, responseBody} = await bookingService.allBooking(
+                    const userId = req.user?.id
+                    const {httpStatusCode, responseBody} = await bookingService.allBooking(userId
                     );
                     res.status(httpStatusCode).json(responseBody); // Send the response, no return value
                 } catch (error) {
@@ -42,9 +43,13 @@ const bookingRoute: RouteType = (apiRouter) => {
             next: NextFunction
         ) => {
             // Let TypeScript infer the return type
+            const bookingDTO = {
+                ...req.body,
+                userId: req.user?.id
+            }
             try {
                 const {httpStatusCode, responseBody} = await bookingService.createBooking(
-                    req.body
+                    bookingDTO
                 );
                 res.status(httpStatusCode).json(responseBody); // Send the response, no return value
             } catch (error) {

@@ -11,6 +11,7 @@ export interface iCreateEmployeeDTO{
     salary: string;
     statusId: string;
     joinedDate: string; 
+    vendorId: string | undefined;
 }
 
 

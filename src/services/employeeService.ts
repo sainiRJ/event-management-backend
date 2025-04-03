@@ -12,7 +12,6 @@ import {
 	iEmployeeData,
 } from "../customTypes/appDataTypes/employeeTypes";
 
-
 export default class EmployeeService {
 	/**
 	 * Create a new employee along with a user entry.
@@ -21,31 +20,40 @@ export default class EmployeeService {
 		employeeBodyDTO: iCreateEmployeeDTO
 	): Promise<iGenericServiceResult<any>> {
 		try {
+			if (!employeeBodyDTO.vendorId) {
+				return serviceUtil.buildResult(
+					false,
+					httpStatusCodes.CLIENT_ERROR_BAD_REQUEST, // Internal server error for any issues with Firebase or DB
+					genericServiceErrors.generic.InvalidCredentials
+				);
+			}
 			// check roleId and statusId exist in the db or not
 			const roleExists = await prisma.role.findUnique({
-                where: { id: employeeBodyDTO.roleId || "13c0b54d-f6cb-11ef-a485-00163c34c678" },
-            });
-            const statusExists = await prisma.status.findUnique({
-                where: { id: employeeBodyDTO.statusId },
-            });
+				where: {
+					id: employeeBodyDTO.roleId || "13c0b54d-f6cb-11ef-a485-00163c34c678",
+				},
+			});
+			const statusExists = await prisma.status.findUnique({
+				where: {id: employeeBodyDTO.statusId},
+			});
 
-            if (!roleExists ||!statusExists) {
-                return serviceUtil.buildResult(
-                    false,
-                    httpStatusCodes.CLIENT_ERROR_BAD_REQUEST,
-                    genericServiceErrors.errors.ValidationError
-                );
-            }
+			if (!roleExists || !statusExists) {
+				return serviceUtil.buildResult(
+					false,
+					httpStatusCodes.CLIENT_ERROR_BAD_REQUEST,
+					genericServiceErrors.errors.ValidationError
+				);
+			}
 
 			// Hash password before storing
-			if (employeeBodyDTO.password){
+			if (employeeBodyDTO.password) {
 				employeeBodyDTO.password = await securityUtil.hashPassword(
 					employeeBodyDTO.password
 				);
 			}
 
-            // Create user and employee in a single transaction to ensure both are created successfully if one fails, the other will also be rolled back.
-            // This way, data integrity is maintained.
+			// Create user and employee in a single transaction to ensure both are created successfully if one fails, the other will also be rolled back.
+			// This way, data integrity is maintained.
 			const result = await prisma.$transaction(async (prisma) => {
 				const user = await prisma.user.create({
 					data: {
@@ -55,7 +63,8 @@ export default class EmployeeService {
 						password: employeeBodyDTO.password, // Hash password before storing
 						phoneNumber: employeeBodyDTO.phoneNumber,
 						status: "active",
-						roleId: employeeBodyDTO.roleId || "13c0b54d-f6cb-11ef-a485-00163c34c678",
+						roleId:
+							employeeBodyDTO.roleId || "13c0b54d-f6cb-11ef-a485-00163c34c678",
 					},
 				});
 
@@ -67,6 +76,7 @@ export default class EmployeeService {
 						salary: new Prisma.Decimal(employeeBodyDTO.salary),
 						joinedDate: new Date(employeeBodyDTO.joinedDate),
 						statusId: employeeBodyDTO.statusId,
+						vendorId: employeeBodyDTO.vendorId!,
 					},
 				});
 
@@ -109,22 +119,19 @@ export default class EmployeeService {
 					false,
 					httpStatusCodes.CLIENT_ERROR_NOT_FOUND,
 					genericServiceErrors.generic.EmployeeDoesNotExist
-
 				);
 			}
 
-			console.log(employee)
-
-			const employeeResponse: iEmployeeData = ({
+			const employeeResponse: iEmployeeData = {
 				id: employee.id,
 				name: employee.users.name,
-				email: employee.users.email || '',
+				email: employee.users.email || "",
 				phoneNumber: employee.users.phoneNumber,
 				joinedDate: employee.joinedDate,
 				status: employee.statuses.name,
 				salary: employee.salary,
 				designation: employee.designation,
-			})
+			};
 
 			return serviceUtil.buildResult(
 				true,
@@ -143,16 +150,26 @@ export default class EmployeeService {
 	}
 
 	/*
-		* Get All employees list
-	*/
+	 * Get All employees list
+	 */
 
-	public async getAllEmployee(): Promise<iGenericServiceResult<iEmployeeResponse>>{
+	public async getAllEmployee(
+		vendorId: string | undefined
+	): Promise<iGenericServiceResult<iEmployeeResponse>> {
 		try {
+			if (!vendorId) {
+				return serviceUtil.buildResult(
+					false,
+					httpStatusCodes.CLIENT_ERROR_BAD_REQUEST, // Internal server error for any issues with Firebase or DB
+					genericServiceErrors.generic.InvalidCredentials
+				);
+			}
 			const employeesData = await prisma.employee.findMany({
 				where: {
-					users:{
-						status: "active"
-					}
+					vendorId: vendorId,
+					users: {
+						status: "active",
+					},
 				},
 				include: {
 					users: true, // Fetch user details
@@ -165,17 +182,14 @@ export default class EmployeeService {
 					false,
 					httpStatusCodes.CLIENT_ERROR_NOT_FOUND,
 					genericServiceErrors.generic.EmployeeDoesNotExist
-
 				);
 			}
-
-			console.log(employeesData)
 
 			// Transform data into the required structure
 			const employeeDetails: Record<string, iEmployeeData> = {};
 			const ids: string[] = [];
 
-			employeesData.forEach(employee => {
+			employeesData.forEach((employee) => {
 				const employeeObj: iEmployeeData = {
 					id: employee.id,
 					name: employee.users.name,
@@ -186,18 +200,15 @@ export default class EmployeeService {
 					salary: employee.salary,
 					designation: employee.designation,
 				};
-	
+
 				employeeDetails[employee.id] = employeeObj;
 				ids.push(employee.id);
 			});
-			
-			return serviceUtil.buildResult(
-				true,
-				httpStatusCodes.SUCCESS_OK,
-				null,
-				{ employeeDetails, ids }
-			);
-			
+
+			return serviceUtil.buildResult(true, httpStatusCodes.SUCCESS_OK, null, {
+				employeeDetails,
+				ids,
+			});
 		} catch (error: any) {
 			console.error(error);
 			return serviceUtil.buildResult(
@@ -205,7 +216,6 @@ export default class EmployeeService {
 				httpStatusCodes.SERVER_ERROR_INTERNAL_SERVER_ERROR,
 				genericServiceErrors.errors.SomethingWentWrong
 			);
-			
 		}
 	}
 
@@ -224,7 +234,7 @@ export default class EmployeeService {
 				return serviceUtil.buildResult(
 					false,
 					httpStatusCodes.CLIENT_ERROR_NOT_FOUND,
-					genericServiceErrors.generic.EmployeeDoesNotFound,
+					genericServiceErrors.generic.EmployeeDoesNotFound
 				);
 			}
 
@@ -296,7 +306,7 @@ export default class EmployeeService {
 			const employee = await prisma.user.update({
 				where: {id: existingEmployee.userId},
 				data: {status: "inactive"}, // Soft delete logic
-            });
+			});
 
 			return serviceUtil.buildResult(
 				true,

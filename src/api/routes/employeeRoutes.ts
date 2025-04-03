@@ -3,6 +3,8 @@ import {Segments, celebrate, Joi} from "celebrate";
 import {RouteType, iRequest, iResponse} from "../../customTypes/expressTypes";
 import EmployeeService from "../../services/employeeService";
 import {createEmployeeBodySchema} from "../../validations/employeeRouteSchema";
+import { authenticateToken } from "../../middleware/authMiddleware";
+
 
 const route = Router();
 const employeeService = new EmployeeService();
@@ -13,10 +15,12 @@ const employeeRoute: RouteType = (apiRouter) => {
 	// Get All Employees
 	route.get(
 		"/all",
+		authenticateToken,
 		async (req: iRequest<any>, res: iResponse<any>, next: NextFunction) => {
 			try {
+
 				const {httpStatusCode, responseBody} =
-					await employeeService.getAllEmployee();
+					await employeeService.getAllEmployee(req.user?.id);
 				res.status(httpStatusCode).json(responseBody);
 			} catch (error) {
 				next(error);
@@ -32,8 +36,12 @@ const employeeRoute: RouteType = (apiRouter) => {
 		}),
 		async (req: iRequest<any>, res: iResponse<any>, next: NextFunction) => {
 			try {
+				const employeeDTO = {
+					...req.body,
+					vendorId: req.user?.id,
+				}
 				const {httpStatusCode, responseBody} =
-					await employeeService.createEmployee(req.body);
+					await employeeService.createEmployee(employeeDTO);
 				res.status(httpStatusCode).json(responseBody);
 			} catch (error) {
 				next(error);
