@@ -8,7 +8,7 @@ const route = Router();
 
 const chatService = new ChatService();
 const chatRoute: RouteType = (apiRouter) =>{
-	apiRouter.use("chat", route);
+	apiRouter.use("/chat", route);
 	route.post(
 		"",
 		celebrate({

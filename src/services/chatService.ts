@@ -16,6 +16,7 @@ export default class ChatService {
         prompt: message,
         stream: false
       });
+      console.log("response in generateReposne", response);
 
             return serviceUtil.buildResult(
               true,

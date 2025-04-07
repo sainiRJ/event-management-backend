@@ -4,6 +4,9 @@ import cookieParser from "cookie-parser";
 import cors from 'cors';
 import loader from './loaders/index';
 import dotenv from 'dotenv';
+import { createServer } from 'http';
+import SocketService from './services/socketService';
+
 dotenv.config();
 
 console.log("port number", process.env.PORT)
@@ -24,7 +27,11 @@ app.use(bodyParser.json());
     process.exit(1); // Exit if loader or DB connection fails
   }
 
-  app.listen(PORT, () => {
+  const httpServer = createServer(app);
+  const socketService = new SocketService();
+  socketService.initialize(httpServer);
+
+  httpServer.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
   });
 })();
