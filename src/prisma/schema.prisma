@@ -7,6 +7,22 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model BookingRequest {
+  id          String     @id @default(uuid()) @db.Char(36)
+  name        String     @db.VarChar(100)
+  email       String     @db.VarChar(100)
+  phone       String     @db.VarChar(15)
+  date        DateTime   @db.Timestamp(0)
+  serviceId   String     @db.Char(36) @map("service_id")
+  location    String     @db.VarChar(255)
+  notes       String?    @db.Text
+  createdAt   DateTime   @default(now()) @db.Timestamp(0) @map("created_at")
+  service     Service    @relation(fields: [serviceId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([serviceId], map: "service_id")
+  @@map("booking_requests")
+}
+
 model Bookings {
   id                                           String     @id @db.Char(36)
   eventId                                      String     @db.Char(36) @map("event_id")
@@ -153,6 +169,7 @@ model Service {
   vendor            User                @relation(fields: [vendorId], references: [id])
   bookings          Bookings[]
   serviceCategories ServiceCategory[]
+  bookingRequests   BookingRequest[]  
 
   @@map("services")
 }
