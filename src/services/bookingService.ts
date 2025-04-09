@@ -333,5 +333,53 @@ export default class BookingService {
 			);
 		}
 	}
+
+	public async getBookingRequest(): Promise<iGenericServiceResult<any>>{
+		try {
+			const bookingRequest = await prisma.bookingRequest.findMany({
+				select: {
+					id: true,
+					name: true,
+					email: true,
+					phone: true,
+					location: true,
+					notes: true,
+					createdAt: true,
+					service: {
+						select: {
+							serviceName: true,
+						},
+					},					
+				},
+				orderBy: {
+					createdAt: 'desc', // latest first
+				},
+			})
+			const transformedBookingRequest = bookingRequest.map(booking => ({
+				id: booking.id,
+				name: booking.name,
+				email: booking.email,
+				phone: booking.phone,
+				location: booking.location,
+				notes: booking.notes,
+				createdAt: booking.createdAt,
+				serviceName: booking.service.serviceName,
+			}));
+			return serviceUtil.buildResult(
+				true,
+				httpStatusCodes.SUCCESS_OK,
+				null,
+				transformedBookingRequest
+			);
+			
+		} catch (error) {
+			console.log(error);
+			return serviceUtil.buildResult(
+				true,
+				httpStatusCodes.SERVER_ERROR_INTERNAL_SERVER_ERROR, // Internal server error for any issues with Firebase or DB
+				genericServiceErrors.errors.SomethingWentWrong
+			);
+		}
+	}
 	
 }

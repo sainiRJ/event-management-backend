@@ -108,6 +108,23 @@ const bookingRoute: RouteType = (apiRouter) => {
             }
         }
     );
+
+    route.get(
+        "/request",
+        authenticateToken,
+        async (
+            req: iRequest<any>,
+            res: iResponse<any>,
+            next: NextFunction 
+        ) => {
+            try {
+                const {httpStatusCode, responseBody} = await bookingService.getBookingRequest();
+                res.status(httpStatusCode).json(responseBody);
+            } catch (error) {
+                next(error);
+            }
+        }
+    )
 };
 
 export default bookingRoute;

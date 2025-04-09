@@ -78,6 +78,10 @@ const genericServiceErrors = asTypeIServiceError({
 			error: "InvalidCredentials",
 			message: "Invalid Credentials"
 		},
+		ImageDoesNotExist: {
+			error: "ImageDoesNotExist",
+			message: "Image does not exist",
+		},
 	}
 });
 

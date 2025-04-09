@@ -60,6 +60,19 @@ model Category {
   @@map("categories")
 }
 
+model DecorationPhoto {
+  id          String     @id @default(uuid()) @db.Char(36)
+  url         String     @db.VarChar(255)
+  title       String?    @db.VarChar(100)
+  serviceId   String     @db.Char(36) @map("service_id")
+  createdAt   DateTime   @default(now()) @db.Timestamp(0) @map("created_at")
+  updatedAt   DateTime   @default(now()) @db.Timestamp(0) @map("updated_at")
+  service     Service    @relation(fields: [serviceId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([serviceId], map: "service_id")
+  @@map("decoration_photos")
+}
+
 model Employee {
   id          String    @id @db.Char(36)
   userId      String    @db.Char(36) @map("user_id")
@@ -169,7 +182,8 @@ model Service {
   vendor            User                @relation(fields: [vendorId], references: [id])
   bookings          Bookings[]
   serviceCategories ServiceCategory[]
-  bookingRequests   BookingRequest[]  
+  bookingRequests   BookingRequest[]
+  decorationPhotos  DecorationPhoto[]
 
   @@map("services")
 }

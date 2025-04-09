@@ -8,6 +8,8 @@ import authRoute from "./routes/authRoutes"
 import weatherRoute from "./routes/weatherRoutes";
 import financeRoute from "./routes/financeRoute";
 import chatRoute from "./routes/chatRoutes";
+import photoRoute from "./routes/photoRoutes";
+import clientRoute from "./routes/clientRoutes";
 
 
 const getRouter = (): Router => {
@@ -22,7 +24,9 @@ const getRouter = (): Router => {
 	authRoute(apiRouter);
 	weatherRoute(apiRouter);
 	financeRoute(apiRouter);
-	chatRoute(apiRouter)
+	chatRoute(apiRouter);
+	photoRoute(apiRouter);
+	clientRoute(apiRouter);
 
 	return apiRouter;
 };
