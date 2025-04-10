@@ -82,7 +82,7 @@ const loadExpress = ({app}: {app: express.Application}): void => {
 	console.log("Loading express...");
 
 	const corsOptions: CorsOptions = {
-		origin: ["http://localhost:3000", "http://23.94.233.79:3000", "http://192.169.0.141:3000"],
+		origin: ["http://localhost:3000", "http://23.94.233.79:3000", "http://192.169.0.141:3000", "http://localhost:8080", "http://23.94.233.79:8080"],
 		methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
 		credentials: true,
 		optionsSuccessStatus: 204,

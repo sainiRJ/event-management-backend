@@ -85,25 +85,32 @@ export default class PhotoService {
 					}
                 }
             });
-			const photoDetails: Record<string, { photoUrl: string; photoID: string; service: string }> = {};
-			const ids: string[] = [];
-			photos.forEach((photo) => {
-				const serviceId = photo.service.id;
+			// const photoDetails: Record<string, { photoUrl: string; photoID: string; service: string }> = {};
+			// const ids: string[] = [];
+			// photos.forEach((photo) => {
+			// 	const serviceId = photo.service.id;
 	
-				if (!photoDetails[serviceId]) {
-					photoDetails[serviceId] = {
-						photoUrl: photo.url,
-						photoID: photo.id,
-						service: photo.service.serviceName
-					};
-					ids.push(serviceId);
-				}
-			});
+			// 	if (!photoDetails[serviceId]) {
+			// 		photoDetails[serviceId] = {
+			// 			photoUrl: photo.url,
+			// 			photoID: photo.id,
+			// 			service: photo.service.serviceName
+			// 		};
+			// 		ids.push(serviceId);
+			// 	}
+			// });
+            const photoDetails = photos.map((photo) => ({
+                photoUrl: photo.url,
+                photoId: photo.id,
+                serviceName: photo.service.serviceName,	
+                serviceId: photo.service.id
+            }));
+            
             return serviceUtil.buildResult(
                 true,
                 httpStatusCodes.SUCCESS_OK,
                 null,
-                {ids, photoDetails}
+                photoDetails
             )
         }	catch(e){
         		console.log(e);
