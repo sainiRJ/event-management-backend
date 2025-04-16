@@ -34,6 +34,7 @@ const bookingRoute: RouteType = (apiRouter) => {
 
     route.post(
         "/create",
+        authenticateToken,
         celebrate({
             [Segments.BODY]: bookingBodySchema, // User schema for validation
         }),

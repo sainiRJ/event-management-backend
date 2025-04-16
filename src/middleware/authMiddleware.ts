@@ -18,6 +18,7 @@ export const authenticateToken = (req: Request, res: Response, next: NextFunctio
     (req as any).user = decoded; // Attach decoded user info to request
     next();
   } catch (error) {
+    console.log(error)
     return res
       .status(httpStatusCodes.CLIENT_ERROR_UNAUTHORIZED)
       .json(serviceUtil.buildResult(false, httpStatusCodes.CLIENT_ERROR_UNAUTHORIZED, genericServiceErrors.auth.FailedToAuthenticate).responseBody);
