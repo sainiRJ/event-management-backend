@@ -27,9 +27,27 @@ export default class SocketService {
           console.log("messages", message);
           const response = await this.chatService.generateResponse(message);
           console.log("response", response);
+          
+          // Split the response into characters and emit them one by one
+          const text = response.responseBody.data;
+          let currentText = '';
+          
+          for (const char of text) {
+            currentText += char;
+            socket.emit('chat:stream', {
+              content: currentText,
+              timestamp: new Date().toISOString(),
+              isComplete: false
+            });
+            // Add a small delay between characters
+            await new Promise(resolve => setTimeout(resolve, 50));
+          }
+          
+          // Emit final complete message
           socket.emit('chat:response', {
-            content: response.responseBody.data,
+            content: text,
             timestamp: new Date().toISOString(),
+            isComplete: true
           });
         } catch (error) {
           socket.emit('chat:error', { 
@@ -44,4 +62,4 @@ export default class SocketService {
       });
     });
   }
-} 
+}
