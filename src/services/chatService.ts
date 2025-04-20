@@ -4,7 +4,32 @@ import serviceUtil from "../utils/serviceUtil";
 import { httpStatusCodes } from "../customTypes/networkTypes";
 import { config } from 'dotenv';
 
-config(); // load env
+config(); // Load .env
+
+const BUSINESS_CONTEXT = `
+You are an intelligent and friendly assistant for **Saini Event Planner**, a trusted event decoration service based in Uttar Pradesh.
+
+📍 Service Areas:
+- Pratapgarh, Amethi, Raebareli
+
+🎉 Services & Prices:
+- Car Decoration: ₹3000
+- Haldi Decoration: ₹4000
+- Stage Decoration: ₹10,000
+- Mandap Setup: ₹5000
+
+📋 Important Rules:
+- ✅ Respond only to decoration-related queries
+- ❌ Never confirm bookings
+- ❌ Never ask for address, phone, event date, or payment method
+- ✅ Instead, say:
+   - “You can click the **Book Now** button to request a booking.”
+   - “To check availability, please visit the **Check Availability** page.”
+   - “To speak with our team, go to the **Contact** page for WhatsApp or phone.”
+- 📵 You cannot send or receive images or personal data
+- Always match the user's language (Hindi or English)
+- Be polite, warm, and professional
+`;
 
 export default class ChatService {
   private geminiEndpoint = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
@@ -13,30 +38,16 @@ export default class ChatService {
 
   private chatProvider = process.env.CHAT_PROVIDER || 'gemini';
 
-  public async generateResponse(message: string): Promise<iGenericServiceResult<any>> {
-    console.log("process.env.CHAT_PROVIDER ", process.env.CHAT_PROVIDER )
-    console.log("Using GEMINI KEY:", process.env.GEMINI_API_KEY?.slice(0, 10));
-    const BUSINESS_CONTEXT = `
-    You are an intelligent and friendly assistant for **Saini Event Planner**, a trusted event decoration service based in Uttar Pradesh.
+  public async generateResponse(
+    currentMessage: string,
+    chatHistory: Array<{ role: 'user' | 'assistant', content: string }>
+  ): Promise<iGenericServiceResult<any>> {
 
-    **Service Areas:**
-    We currently provide services in:
-    - Pratapgarh
-    - Amethi
-    - Raebareli
-
-    **Available Services & Starting Prices:**
-    - 🚗 *Car Decoration* — starting from ₹3000
-    - 🌼 *Haldi Decoration* — starting from ₹4000
-    - 🎉 *Stage Decoration* — starting from ₹10,000
-    - 🛕 *Mandap Setup* — starting from ₹5000
-
-    ✅ Important Instructions:
-    - Always respond in the same language the user speaks in — Hindi or English.
-    - Do not invent any services, prices, or locations.
-    - If the user asks about availability, tell them to visit the "Check Availability" page on our website or use the contact details on the "Contact" page (phone/WhatsApp) to get in touch with our team.
-    - Be polite, warm, and professional in every reply.
-    `;
+    const messages = [
+      { role: 'system', content: BUSINESS_CONTEXT },
+      ...chatHistory,
+      { role: 'user', content: currentMessage }
+    ];
 
     try {
       if (this.chatProvider === 'openai') {
@@ -44,10 +55,7 @@ export default class ChatService {
           this.openaiEndpoint,
           {
             model: 'gpt-3.5-turbo',
-            messages: [
-              { role: 'system', content: BUSINESS_CONTEXT },
-              { role: 'user', content: message }
-            ]
+            messages
           },
           {
             headers: {
@@ -70,10 +78,7 @@ export default class ChatService {
           this.groqEndpoint,
           {
             model: 'meta-llama/llama-4-scout-17b-16e-instruct',
-            messages: [
-              { role: 'system', content: BUSINESS_CONTEXT },
-              { role: 'user', content: message }
-            ]
+            messages
           },
           {
             headers: {
@@ -92,15 +97,19 @@ export default class ChatService {
       }
 
       else {
-        // default: gemini
-        console.log("gemini block");
+        const historyText = chatHistory
+          .map(m => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`)
+          .join('\n');
+
+        const prompt = `${BUSINESS_CONTEXT}\n\n${historyText}\nUser: ${currentMessage}`;
+
         const response = await axios.post(
           `${this.geminiEndpoint}?key=${process.env.GEMINI_API_KEY}`,
           {
             contents: [
               {
                 role: "user",
-                parts: [{ text: `${BUSINESS_CONTEXT}\n\nUser: ${message}` }]
+                parts: [{ text: prompt }]
               }
             ]
           },
@@ -110,8 +119,6 @@ export default class ChatService {
             }
           }
         );
-        console.log("gemini block response",response);
-
 
         return serviceUtil.buildResult(
           true,
@@ -120,6 +127,7 @@ export default class ChatService {
           response.data.candidates[0].content.parts[0].text
         );
       }
+
     } catch (error: any) {
       console.error("Chat API error:", error?.response?.data || error.message);
       throw new Error(`Failed to generate chat response: ${error.message}`);
