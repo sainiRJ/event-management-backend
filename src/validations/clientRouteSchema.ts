@@ -14,4 +14,9 @@ const bookingRequestBodySchema = Joi.object({
     notes: Joi.string().optional().allow("").label("Notes"),
 })
 
-export {bookingRequestBodySchema}
+const availabilityBodySchema = Joi.object({
+    statusId: Joi.string().required().label("Service Id"),
+    date: Joi.date().required().label("Date"),
+})
+
+export {bookingRequestBodySchema, availabilityBodySchema}

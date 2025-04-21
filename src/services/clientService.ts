@@ -67,33 +67,23 @@ export default class ClientService {
 			if (!serviceExist) {
 				return serviceUtil.buildResult(
 					false,
-					httpStatusCodes.CLIENT_ERROR_BAD_REQUEST, // Internal server error for any issues with Firebase or DB
+					httpStatusCodes.CLIENT_ERROR_BAD_REQUEST,
 					genericServiceErrors.generic.InvalidCredentials
 				);
 			}
-			const isBookingAvailable = await prisma.bookings.findFirst({
+			const anyBookingExist = await prisma.bookings.findFirst({
 				where: {
-					services: {
-						available: true,
-					},
+					serviceId: checkAvaialabilityDTO.serviceId
 				},
 			});
-			const available = {available: isBookingAvailable ? true : false};
-			if (isBookingAvailable) {
-				return serviceUtil.buildResult(
-					true,
-					httpStatusCodes.SUCCESS_OK,
-					null,
-					available
-				);
-			} else {
-				return serviceUtil.buildResult(
-					true,
-					httpStatusCodes.SUCCESS_OK,
-					null,
-					available
-				);
-			}
+			const available = {available: serviceExist.available ? anyBookingExist ? false : true : false};
+
+			return serviceUtil.buildResult(
+				true,
+				httpStatusCodes.SUCCESS_OK,
+				null,
+				available
+			);
 		} catch (error) {
 			return serviceUtil.buildResult(
 				false,
