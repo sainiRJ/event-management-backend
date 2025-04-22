@@ -5,6 +5,7 @@ import serviceUtil from "../utils/serviceUtil";
 import {iGenericServiceResult} from "../customTypes/commonServiceTypes";
 import {genericServiceErrors} from "../constants/errors/genericServiceErrors";
 import {iBookingRequestDTO} from "../customTypes/appDataTypes/clientTypes";
+import { date } from "joi";
 
 export default class ClientService {
 	public async requestBooking(
@@ -22,10 +23,14 @@ export default class ClientService {
 			if (!serviceExist) {
 				return serviceUtil.buildResult(
 					false,
-					httpStatusCodes.CLIENT_ERROR_BAD_REQUEST, // Internal server error for any issues with Firebase or DB
+					httpStatusCodes.CLIENT_ERROR_BAD_REQUEST,
 					genericServiceErrors.generic.InvalidCredentials
 				);
 			}
+			/*
+				as it is booking request service so we put status pending
+				so for make panding we take status id of booking context from status table
+			*/
 			const bookingRequest = await prisma.bookingRequest.create({
 				data: {
 					id: securityUtil.generateUUID(),
@@ -33,6 +38,7 @@ export default class ClientService {
 					phone: bookingBodyDTO.phoneNumber,
 					email: bookingBodyDTO.email || "",
 					serviceId: bookingBodyDTO.serviceId,
+					statusId: "ddf760d9-f355-11ef-a485-00163c34c678",
 					location: bookingBodyDTO.location,
 					date: new Date(bookingBodyDTO.date),
 					notes: bookingBodyDTO.notes,
@@ -59,7 +65,7 @@ export default class ClientService {
 		date: Date;
 	}): Promise<iGenericServiceResult<any>> {
 		try {
-			const serviceExist = await prisma.service.findUnique({
+			const serviceExist = await prisma.service.findFirst({
 				where: {
 					id: checkAvaialabilityDTO.serviceId,
 				},
@@ -73,9 +79,13 @@ export default class ClientService {
 			}
 			const anyBookingExist = await prisma.bookings.findFirst({
 				where: {
-					serviceId: checkAvaialabilityDTO.serviceId
+					serviceId: checkAvaialabilityDTO.serviceId,
+					events: {
+						eventDate: checkAvaialabilityDTO.date
+					}
 				},
 			});
+			console.log(anyBookingExist)
 			const available = {available: serviceExist.available ? anyBookingExist ? false : true : false};
 
 			return serviceUtil.buildResult(
@@ -85,6 +95,7 @@ export default class ClientService {
 				available
 			);
 		} catch (error) {
+			console.log(error)
 			return serviceUtil.buildResult(
 				false,
 				httpStatusCodes.SERVER_ERROR_INTERNAL_SERVER_ERROR, // Internal server error for any issues with Firebase or DB

@@ -16,8 +16,11 @@ model BookingRequest {
   serviceId   String     @db.Char(36) @map("service_id")
   location    String     @db.VarChar(255)
   notes       String?    @db.Text
+  statusId    String     @db.Char(36) @map("status_id")
   createdAt   DateTime   @default(now()) @db.Timestamp(0) @map("created_at")
   service     Service    @relation(fields: [serviceId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  statuses    Status    @relation(fields: [statusId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "bookingrequest_ibfk_status")
+  booking               Bookings?
 
   @@index([serviceId], map: "service_id")
   @@map("booking_requests")
@@ -33,12 +36,14 @@ model Bookings {
   advancePayment                               Decimal?  @db.Decimal(10, 2) @map("advance_payment")
   paymentStatusId                              String     @db.Char(36) @map("payment_status_id")
   bookedAt                                     DateTime?  @default(now()) @db.Timestamp(0) @map("booked_at")
+  bookingRequestId                             String?    @db.Char(36) @unique @map("booking_requests")
 
   services                                     Service    @relation(fields: [serviceId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "bookings_ibfk_2")
   bookingStatus                                Status     @relation("booking_status", fields: [statusId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "bookings_ibfk_3")
   paymentStatus                                Status     @relation("payment_status", fields: [paymentStatusId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "bookings_ibfk_4")
   events                                       Event      @relation(fields: [eventId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "bookings_ibfk_5")
   vendor                                       User       @relation(fields: [vendorId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "bookings_ibfk_6")
+  bookingRequest                               BookingRequest? @relation(fields: [bookingRequestId], references: [id])
   payments                                     Payment[]
 
   @@index([eventId], map: "event_id")
@@ -197,6 +202,7 @@ model Status {
   updatedAt                                 DateTime?  @default(now()) @db.Timestamp(0) @map("updated_at")
   bookingStatus                             Bookings[]  @relation("booking_status")
   paymentStatus                             Bookings[]  @relation("payment_status")
+  bookingRequests                           BookingRequest[]
   employees                                 Employee[]
   payments                                  Payment[]
 

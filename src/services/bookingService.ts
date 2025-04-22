@@ -349,7 +349,12 @@ export default class BookingService {
 						select: {
 							serviceName: true,
 						},
-					},					
+					},
+					statuses: {
+						select: {
+							name: true,
+						}
+					}					
 				},
 				orderBy: {
 					createdAt: 'desc', // latest first
@@ -364,6 +369,7 @@ export default class BookingService {
 				notes: booking.notes,
 				createdAt: booking.createdAt,
 				serviceName: booking.service.serviceName,
+				status: booking.statuses.name,
 			}));
 			return serviceUtil.buildResult(
 				true,

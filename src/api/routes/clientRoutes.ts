@@ -35,7 +35,7 @@ const clientRoute: RouteType = (apiRouter) => {
         }
     );
     route.post(
-        "/request",
+        "/available/request",
         celebrate({
             [Segments.BODY]: availabilityBodySchema,
             }),
