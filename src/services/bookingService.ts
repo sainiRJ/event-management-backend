@@ -345,14 +345,17 @@ export default class BookingService {
 					location: true,
 					notes: true,
 					createdAt: true,
+					date: true,
 					service: {
 						select: {
 							serviceName: true,
+							id: true,
 						},
 					},
 					statuses: {
 						select: {
 							name: true,
+							id: true,
 						}
 					}					
 				},
@@ -362,14 +365,17 @@ export default class BookingService {
 			})
 			const transformedBookingRequest = bookingRequest.map(booking => ({
 				id: booking.id,
-				name: booking.name,
+				customerName: booking.name,
 				email: booking.email,
-				phone: booking.phone,
+				phoneNumber: booking.phone,
+				eventDate: booking.date,
 				location: booking.location,
 				notes: booking.notes,
-				createdAt: booking.createdAt,
+				bookingRequestAt: booking.createdAt,
 				serviceName: booking.service.serviceName,
-				status: booking.statuses.name,
+				serviceId: booking.service.id,
+				statusName: booking.statuses.name,
+				statusId: booking.statuses.id,
 			}));
 			return serviceUtil.buildResult(
 				true,
