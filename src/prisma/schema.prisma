@@ -65,6 +65,16 @@ model Category {
   @@map("categories")
 }
 
+model ContactMessage {
+  id         Int      @id @default(autoincrement())
+  name       String
+  mobile     String
+  message    String
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@map("contact_messages")
+}
+
 model DecorationPhoto {
   id          String     @id @default(uuid()) @db.Char(36)
   url         String     @db.VarChar(255)

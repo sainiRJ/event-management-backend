@@ -4,8 +4,11 @@ import {httpStatusCodes} from "../customTypes/networkTypes";
 import serviceUtil from "../utils/serviceUtil";
 import {iGenericServiceResult} from "../customTypes/commonServiceTypes";
 import {genericServiceErrors} from "../constants/errors/genericServiceErrors";
-import {iBookingRequestDTO} from "../customTypes/appDataTypes/clientTypes";
-import { date } from "joi";
+import {
+	iBookingRequestDTO,
+	iContactMessageDTO,
+} from "../customTypes/appDataTypes/clientTypes";
+import {date} from "joi";
 
 export default class ClientService {
 	public async requestBooking(
@@ -81,12 +84,18 @@ export default class ClientService {
 				where: {
 					serviceId: checkAvaialabilityDTO.serviceId,
 					events: {
-						eventDate: checkAvaialabilityDTO.date
-					}
+						eventDate: checkAvaialabilityDTO.date,
+					},
 				},
 			});
-			console.log(anyBookingExist)
-			const available = {available: serviceExist.available ? anyBookingExist ? false : true : false};
+			console.log(anyBookingExist);
+			const available = {
+				available: serviceExist.available
+					? anyBookingExist
+						? false
+						: true
+					: false,
+			};
 
 			return serviceUtil.buildResult(
 				true,
@@ -95,10 +104,37 @@ export default class ClientService {
 				available
 			);
 		} catch (error) {
-			console.log(error)
+			console.log(error);
 			return serviceUtil.buildResult(
 				false,
 				httpStatusCodes.SERVER_ERROR_INTERNAL_SERVER_ERROR, // Internal server error for any issues with Firebase or DB
+				genericServiceErrors.errors.SomethingWentWrong
+			);
+		}
+	}
+
+	public async createContactMessage(
+		contactMessageDTO: iContactMessageDTO
+	): Promise<iGenericServiceResult<any>> {
+		try {
+			const contactMessage = await prisma.contactMessage.create({
+				data: {
+					name: contactMessageDTO.name,
+					mobile: contactMessageDTO.phoneNumber,
+					message: contactMessageDTO.message,
+					createdAt: new Date(),
+				},
+			});
+			return serviceUtil.buildResult(
+				true,
+				httpStatusCodes.SUCCESS_CREATED,
+				null,
+				contactMessage
+			);
+		} catch (error) {
+			return serviceUtil.buildResult(
+				false,
+				httpStatusCodes.SERVER_ERROR_INTERNAL_SERVER_ERROR,
 				genericServiceErrors.errors.SomethingWentWrong
 			);
 		}
