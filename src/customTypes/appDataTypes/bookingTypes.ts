@@ -17,8 +17,8 @@ export interface iBookingCreateDTO {
 
  export interface iBookingUpdateDTO {
     serviceId?: string;
-    statusId?: string;
-    paymentStatusId?: string;
+    bookingStatus?: string;
+    paymentStatus?: string;
     budget?: string;
     customerName?: string;
     phoneNumber?: string;
