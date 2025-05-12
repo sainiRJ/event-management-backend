@@ -128,16 +128,19 @@ export default class BookingService {
 					},
 					paymentStatus: {
 						select: {
+							id:true,
 							name: true,
 						},
 					},
 					bookingStatus: {
 						select: {
+							id:true,
 							name: true,
 						},
 					},
 					services: {
 						select: {
+							id:true,
 							serviceName: true,
 						},
 					},
@@ -154,8 +157,11 @@ export default class BookingService {
 				advancePayment: booking.advancePayment,
 				bookedAt: booking.bookedAt,
 				bookingStatus: booking.bookingStatus.name,
+				bookingStatusId:booking.bookingStatus.id,
 				paymentStatus: booking.paymentStatus.name,
+				paymentStatusId: booking.paymentStatus.id,
 				serviceName: booking.services.serviceName,
+				serviceId: booking.services.id,
 				customerName: booking.events.customerName,
 				phoneNumber: booking.events.phoneNumber,
 				eventName: booking.events.eventName,
@@ -212,9 +218,9 @@ export default class BookingService {
 				}
 			}
 
-			if (updateDTO.bookingStatus) {
+			if (updateDTO.bookingStatusId) {
 				const statusExist = await prisma.status.findUnique({
-					where: {id: updateDTO.bookingStatus},
+					where: {id: updateDTO.bookingStatusId},
 				});
 				if (!statusExist)
 					return serviceUtil.buildResult(
@@ -224,11 +230,10 @@ export default class BookingService {
 					);
 			}
 
-			if (updateDTO.paymentStatus) {
-				console.log(updateDTO,"updateDTO")
+			if (updateDTO.paymentStatusId) {
 
 				const paymentStatusExist = await prisma.status.findUnique({
-					where: {id: updateDTO.paymentStatus},
+					where: {id: updateDTO.paymentStatusId},
 				});
 				if (!paymentStatusExist){
 
@@ -258,9 +263,9 @@ export default class BookingService {
 			const bookingUpdateData: any = {};
 			if (updateDTO.serviceId)
 				bookingUpdateData.serviceId = updateDTO.serviceId;
-			if (updateDTO.bookingStatus) bookingUpdateData.statusId = updateDTO.bookingStatus;
-			if (updateDTO.paymentStatus)
-				bookingUpdateData.paymentStatusId = updateDTO.paymentStatus;
+			if (updateDTO.bookingStatusId) bookingUpdateData.statusId = updateDTO.bookingStatusId;
+			if (updateDTO.paymentStatusId)
+				bookingUpdateData.paymentStatusId = updateDTO.paymentStatusId;
 			if (updateDTO.budget) bookingUpdateData.totalCost = updateDTO.budget;
 
 			// 4. Perform atomic updates
