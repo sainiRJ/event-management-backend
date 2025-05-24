@@ -20,13 +20,13 @@ export default class EmployeeService {
 		employeeBodyDTO: iCreateEmployeeDTO
 	): Promise<iGenericServiceResult<any>> {
 		try {
-			if (!employeeBodyDTO.vendorId) {
-				return serviceUtil.buildResult(
-					false,
-					httpStatusCodes.CLIENT_ERROR_BAD_REQUEST, // Internal server error for any issues with Firebase or DB
-					genericServiceErrors.generic.InvalidCredentials
-				);
-			}
+			// if (!employeeBodyDTO.vendorId) {
+			// 	return serviceUtil.buildResult(
+			// 		false,
+			// 		httpStatusCodes.CLIENT_ERROR_BAD_REQUEST, // Internal server error for any issues with Firebase or DB
+			// 		genericServiceErrors.generic.InvalidCredentials
+			// 	);
+			// }
 			// check roleId and statusId exist in the db or not
 			const roleExists = await prisma.role.findUnique({
 				where: {
@@ -76,7 +76,7 @@ export default class EmployeeService {
 						salary: new Prisma.Decimal(employeeBodyDTO.salary),
 						joinedDate: new Date(employeeBodyDTO.joinedDate),
 						statusId: employeeBodyDTO.statusId,
-						vendorId: employeeBodyDTO.vendorId!,
+						vendorId: employeeBodyDTO.vendorId!||'112538a1-aa00-417a-879a-48d444dcc5a2',
 					},
 				});
 

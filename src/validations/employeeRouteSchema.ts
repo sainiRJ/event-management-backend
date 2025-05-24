@@ -36,7 +36,7 @@ const createEmployeeBodySchema = Joi.object({
 	.required()
 	.messages({" any.required" : "designation will be required"}),
 
-	salary: Joi.string()
+	salary: Joi.number()
 	.required()
 	.messages({" any.required" : "salary will be required"}),
 
