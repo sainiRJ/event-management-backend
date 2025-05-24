@@ -82,6 +82,10 @@ const genericServiceErrors = asTypeIServiceError({
 			error: "ImageDoesNotExist",
 			message: "Image does not exist",
 		},
+		UnauthorizedAccess: {
+			error: "UnauthorizedAccess",
+			message: "You are not authorized to perform this action"
+		}
 	}
 });
 
