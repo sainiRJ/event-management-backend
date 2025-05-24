@@ -40,7 +40,7 @@ export default class SocketService {
   public initialize(server: HttpServer): void {
     this.io = new Server(server, {
       cors: {
-	    	origin: [process.env.CLIENT_FRONTEND_URL, process.env.ADMIN_FRONTEND_URL],
+	    	origin: [process.env.CLIENT_FRONTEND_URL || "https://sainievents.in", process.env.ADMIN_FRONTEND_URL || "https://admin.sainievents.in"],
         methods: ["GET", "POST"],
         credentials: true
       }

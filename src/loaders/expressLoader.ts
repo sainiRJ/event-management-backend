@@ -83,6 +83,10 @@ const unAuthorizedErrorHandler: express.ErrorRequestHandler = (
 const loadExpress = ({app}: {app: express.Application}): void => {
 	app.enable("trust proxy");
 	console.log("Loading express...");
+	if (!process.env.CLIENT_FRONTEND_URL || !process.env.ADMIN_FRONTEND_URL) {
+  		throw new Error('CLIENT_FRONTEND_URL or ADMIN_FRONTEND_URL is not defined');
+	}
+
 
 	const corsOptions: CorsOptions = {
 		origin: [process.env.CLIENT_FRONTEND_URL, process.env.ADMIN_FRONTEND_URL],
