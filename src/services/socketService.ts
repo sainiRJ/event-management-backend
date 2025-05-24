@@ -3,6 +3,9 @@ import { Server, Socket } from 'socket.io';
 import { Server as HttpServer } from 'http';
 import chatService from './chatService';
 import securityUtil from "../utils/securityUtil";
+import { config } from 'dotenv';
+
+config()
 
 // In-memory fallback chat history (can be replaced with Redis later)
 const chatSessions: Record<string, Array<{ role: 'user' | 'assistant', content: string }>> = {};
