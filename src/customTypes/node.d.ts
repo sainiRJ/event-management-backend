@@ -74,5 +74,7 @@ declare namespace NodeJS {
 		AWS_SECRET_ACCESS_KEY: string;
 		AWS_REGION: string;
 		AWS_S3_BUCKET_NAME: string;
+		ADMIN_FRONTEND_URL: string;
+		CLIENT_FRONTEND_URL: string;
 	}
 }

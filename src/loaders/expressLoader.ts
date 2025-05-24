@@ -10,6 +10,9 @@ import {
 	iValidationErrorDetails,
 } from "../customTypes/commonServiceTypes";
 import {genericServiceErrors} from "../constants/errors/genericServiceErrors";
+import { config } from "dotenv";
+
+config()
 
 const celebrateValidationErrorHandler: express.ErrorRequestHandler = (
 	err,
@@ -82,7 +85,7 @@ const loadExpress = ({app}: {app: express.Application}): void => {
 	console.log("Loading express...");
 
 	const corsOptions: CorsOptions = {
-		origin: ["http://localhost:3000", "http://23.94.233.79:3000", "http://192.169.0.141:3000", "http://localhost:8080", "http://23.94.233.79:8080"],
+		origin: [process.env.CLIENT_FRONTEND_URL, process.env.ADMIN_FRONTEND_URL],
 		methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
 		credentials: true,
 		optionsSuccessStatus: 204,
