@@ -6,11 +6,12 @@ import {
 	availabilityBodySchema,
 	contactMessageSchema,
 } from "../../validations/clientRouteSchema";
-import {iBookingRequestDTO, iContactMessageDTO} from "../../customTypes/appDataTypes/clientTypes";
+import {
+	iBookingRequestDTO,
+	iContactMessageDTO,
+} from "../../customTypes/appDataTypes/clientTypes";
 import ClientService from "../../services/clientService";
 import {authenticateToken} from "../../middleware/authMiddleware";
-import {Joi} from "celebrate";
-import {date, string} from "joi";
 
 const route = Router();
 
@@ -37,6 +38,7 @@ const clientRoute: RouteType = (apiRouter) => {
 			}
 		}
 	);
+
 	route.post(
 		"/available/request",
 		celebrate({

@@ -11,7 +11,6 @@ export default class FinanceService {
 	public async allFinance(
 		monthlyIncomeDTO: iMonthlyIncomeDTO
 	): Promise<iGenericServiceResult<any>> {
-
 		/*
 			verify service, status, and payment_status exist or not
 			Check status existence only if bookingStatusId is provided
@@ -35,14 +34,14 @@ export default class FinanceService {
 		if (monthlyIncomeDTO.paymentStatusId) {
 			const paymentStatusExist = await prisma.status.findUnique({
 				where: {id: monthlyIncomeDTO.paymentStatusId},
-			});	
-            if (!paymentStatusExist) {
-            	return serviceUtil.buildResult(
+			});
+			if (!paymentStatusExist) {
+				return serviceUtil.buildResult(
 					false,
 					httpStatusCodes.CLIENT_ERROR_NOT_FOUND,
 					genericServiceErrors.generic.StatusDoesNotExist
 				);
-            }
+			}
 		}
 
 		/*
@@ -94,27 +93,65 @@ export default class FinanceService {
 		if (monthlyIncomeDTO.bookingStatusId) {
 			whereClause.statusId.equals = monthlyIncomeDTO.bookingStatusId;
 		}
-        if(monthlyIncomeDTO.paymentStatusId) {
-        	whereClause.paymentStatusId = monthlyIncomeDTO.paymentStatusId;
-        }
+		if (monthlyIncomeDTO.paymentStatusId) {
+			whereClause.paymentStatusId = monthlyIncomeDTO.paymentStatusId;
+		}
 
 		if (monthlyIncomeDTO.serviceId) {
 			whereClause.serviceId = monthlyIncomeDTO.serviceId;
 		}
+		console.log(whereClause);
 
-		const allIncome = await prisma.bookings.aggregate({
-			_sum: {
-				totalCost: true,
-				advancePayment: true,
-			},
-			where: whereClause,
-		});
-		const responseData = {
-			totalIncome: allIncome._sum.totalCost,
-			totalAdvance: allIncome._sum.advancePayment,
-		};
 		try {
-			// Return successful result
+			// Get total income and advance payment
+			const allIncome = await prisma.bookings.aggregate({
+				_sum: {
+					totalCost: true,
+					advancePayment: true,
+				},
+				where: whereClause,
+			});
+
+			// Get service-wise breakdown
+			const serviceBreakdown = await prisma.bookings.groupBy({
+				by: ["serviceId"],
+				_sum: {
+					totalCost: true,
+					advancePayment: true,
+				},
+				where: whereClause,
+			});
+
+			// Get service details
+			const serviceDetails = await prisma.service.findMany({
+				where: {
+					id: {
+						in: serviceBreakdown.map((item) => item.serviceId),
+					},
+				},
+				select: {
+					id: true,
+					serviceName: true,
+				},
+			});
+
+			// Map service details to breakdown
+			const serviceWiseData = serviceBreakdown.map((item) => {
+				const service = serviceDetails.find((s) => s.id === item.serviceId);
+				return {
+					serviceId: item.serviceId,
+					serviceName: service?.serviceName || "Unknown Service",
+					totalCost: item._sum.totalCost || 0,
+					advancePayment: item._sum.advancePayment || 0,
+				};
+			});
+
+			const responseData = {
+				totalIncome: allIncome._sum.totalCost || 0,
+				totalAdvance: allIncome._sum.advancePayment || 0,
+				serviceWiseData,
+			};
+
 			return serviceUtil.buildResult(
 				true,
 				httpStatusCodes.SUCCESS_OK,
@@ -124,7 +161,90 @@ export default class FinanceService {
 		} catch (error) {
 			console.log(error);
 			return serviceUtil.buildResult(
-				true,
+				false,
+				httpStatusCodes.SERVER_ERROR_INTERNAL_SERVER_ERROR,
+				genericServiceErrors.errors.SomethingWentWrong
+			);
+		}
+	}
+
+	public async getEmployeeServiceAssignments(
+		vendorId: string
+	): Promise<iGenericServiceResult<any>> {
+		try {
+			// Get all employees with their service assignments and rates
+			const employees = await prisma.employee.findMany({
+				where: {
+					vendorId: vendorId,
+					users: {
+						status: "active",
+					},
+				},
+				include: {
+					users: {
+						select: {
+							name: true,
+						},
+					},
+					serviceRates: {
+						include: {
+							service: true,
+						},
+					},
+					assignedEmployees: {
+						include: {
+							service: true,
+						},
+					},
+				},
+			});
+
+			const employeeDetails = employees.map((employee) => {
+				// Count service assignments
+				const serviceCounts = new Map();
+				employee.assignedEmployees.forEach((assignment) => {
+					const count = serviceCounts.get(assignment.serviceId) || 0;
+					serviceCounts.set(assignment.serviceId, count + 1);
+				});
+
+				// Get unique services with their counts and rates
+				const services = Array.from(serviceCounts.entries()).map(
+					([serviceId, count]) => {
+						const serviceRate = employee.serviceRates.find(
+							(rate) => rate.serviceId === serviceId
+						);
+						const service = serviceRate?.service;
+						return {
+							serviceId,
+							serviceName: service?.serviceName || "",
+							count,
+							amount: serviceRate?.charge || 0,
+						};
+					}
+				);
+
+				// Calculate total amount
+				const totalAmount = services.reduce(
+					(sum, service) => sum + Number(service.amount) * service.count,
+					0
+				);
+
+				return {
+					employeeId: employee.id,
+					employeeName: employee.users.name,
+					totalServiceCount: employee.assignedEmployees.length,
+					totalAmount,
+					services,
+				};
+			});
+
+			return serviceUtil.buildResult(true, httpStatusCodes.SUCCESS_OK, null, {
+				employeeDetails,
+			});
+		} catch (error: any) {
+			console.error(error);
+			return serviceUtil.buildResult(
+				false,
 				httpStatusCodes.SERVER_ERROR_INTERNAL_SERVER_ERROR,
 				genericServiceErrors.errors.SomethingWentWrong
 			);

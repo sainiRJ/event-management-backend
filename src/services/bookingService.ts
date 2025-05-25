@@ -18,13 +18,12 @@ export default class BookingService {
 			if (!bookingBodyDTO.userId) {
 				return serviceUtil.buildResult(
 					false,
-					httpStatusCodes.CLIENT_ERROR_BAD_REQUEST, // Internal server error for any issues with Firebase or DB
+					httpStatusCodes.CLIENT_ERROR_BAD_REQUEST,
 					genericServiceErrors.generic.InvalidCredentials
 				);
 			}
-			/*
-			verify service, status, and payment_status exist or not
-			*/
+
+			// Verify service, status, and payment_status exist
 			const serviceExist = await prisma.service.findUnique({
 				where: {
 					id: bookingBodyDTO.serviceId,
@@ -33,10 +32,11 @@ export default class BookingService {
 			if (!serviceExist) {
 				return serviceUtil.buildResult(
 					false,
-					httpStatusCodes.CLIENT_ERROR_NOT_FOUND, // Internal server error for any issues with Firebase or DB
+					httpStatusCodes.CLIENT_ERROR_NOT_FOUND,
 					genericServiceErrors.generic.ServiceDoesNotExist
 				);
 			}
+
 			const statusExist = await prisma.status.findUnique({
 				where: {
 					id: bookingBodyDTO.bookingStatusId,
@@ -45,10 +45,11 @@ export default class BookingService {
 			if (!statusExist) {
 				return serviceUtil.buildResult(
 					false,
-					httpStatusCodes.CLIENT_ERROR_NOT_FOUND, // Internal server error for any issues with Firebase or DB
+					httpStatusCodes.CLIENT_ERROR_NOT_FOUND,
 					genericServiceErrors.generic.StatusDoesNotExist
 				);
 			}
+
 			const paymentStatusExist = await prisma.status.findUnique({
 				where: {
 					id: bookingBodyDTO.paymentStatusId,
@@ -57,38 +58,73 @@ export default class BookingService {
 			if (!paymentStatusExist) {
 				return serviceUtil.buildResult(
 					false,
-					httpStatusCodes.CLIENT_ERROR_NOT_FOUND, // Internal server error for any issues with Firebase or DB
+					httpStatusCodes.CLIENT_ERROR_NOT_FOUND,
 					genericServiceErrors.generic.PaymentStatusDoesNotExist
 				);
 			}
 
-			const event = await prisma.event.create({
-				data: {
-					id: securityUtil.generateUUID(),
-					customerName: bookingBodyDTO.customerName,
-					phoneNumber: bookingBodyDTO.phoneNumber,
-					eventDate: new Date(bookingBodyDTO.eventDate),
-					eventName: bookingBodyDTO.eventName,
-					location: bookingBodyDTO.venueAddress,
-					createdAt: new Date(),
-					updatedAt: new Date(),
-				},
+			// If employee IDs are provided, verify they exist and belong to the vendor
+			if (bookingBodyDTO.assignedEmployeeIds?.length) {
+				const employees = await prisma.employee.findMany({
+					where: {
+						id: {in: bookingBodyDTO.assignedEmployeeIds},
+						vendorId: bookingBodyDTO.userId,
+					},
+				});
+
+				if (employees.length !== bookingBodyDTO.assignedEmployeeIds.length) {
+					return serviceUtil.buildResult(
+						false,
+						httpStatusCodes.CLIENT_ERROR_NOT_FOUND,
+						genericServiceErrors.generic.EmployeeDoesNotExist
+					);
+				}
+			}
+
+			const result = await prisma.$transaction(async (prisma) => {
+				// Create event
+				const event = await prisma.event.create({
+					data: {
+						id: securityUtil.generateUUID(),
+						customerName: bookingBodyDTO.customerName,
+						phoneNumber: bookingBodyDTO.phoneNumber,
+						eventDate: new Date(bookingBodyDTO.eventDate),
+						eventName: bookingBodyDTO.eventName,
+						location: bookingBodyDTO.venueAddress,
+						createdAt: new Date(),
+						updatedAt: new Date(),
+					},
+				});
+
+				// Create booking
+				const booking = await prisma.bookings.create({
+					data: {
+						id: securityUtil.generateUUID(),
+						eventId: event.id,
+						serviceId: bookingBodyDTO.serviceId,
+						statusId: bookingBodyDTO.bookingStatusId,
+						totalCost: new Prisma.Decimal(bookingBodyDTO.budget),
+						advancePayment: new Prisma.Decimal(bookingBodyDTO.advancePayment),
+						paymentStatusId: bookingBodyDTO.paymentStatusId,
+						vendorId: bookingBodyDTO.userId as string,
+					},
+				});
+
+				// Assign employees if provided
+				if (bookingBodyDTO.assignedEmployeeIds?.length) {
+					await prisma.assignedEmployee.createMany({
+						data: bookingBodyDTO.assignedEmployeeIds.map((employeeId) => ({
+							id: securityUtil.generateUUID(),
+							bookingId: booking.id,
+							employeeId,
+							serviceId: bookingBodyDTO.serviceId,
+						})),
+					});
+				}
+
+				return {event, booking};
 			});
 
-			await prisma.bookings.create({
-				data: {
-					id: securityUtil.generateUUID(),
-					eventId: event.id,
-					serviceId: bookingBodyDTO.serviceId,
-					statusId: bookingBodyDTO.bookingStatusId,
-					totalCost: bookingBodyDTO.budget,
-					advancePayment: bookingBodyDTO.advancePayment,
-					paymentStatusId: bookingBodyDTO.paymentStatusId,
-					vendorId: bookingBodyDTO.userId,
-				},
-			});
-
-			// Return successful result
 			return serviceUtil.buildResult(
 				true,
 				httpStatusCodes.SUCCESS_OK,
@@ -110,45 +146,30 @@ export default class BookingService {
 		try {
 			const bookings = await prisma.bookings.findMany({
 				where: {
-					vendorId: userId,
+					vendorId: userId as string,
 				},
-				select: {
-					id: true,
-					totalCost: true,
-					bookedAt: true,
-					advancePayment: true,
-					events: {
-						select: {
-							eventName: true,
-							customerName: true,
-							phoneNumber: true,
-							location: true,
-							eventDate: true,
-						},
-					},
-					paymentStatus: {
-						select: {
-							id:true,
-							name: true,
-						},
-					},
-					bookingStatus: {
-						select: {
-							id:true,
-							name: true,
-						},
-					},
-					services: {
-						select: {
-							id:true,
-							serviceName: true,
-						},
-					},
+				include: {
+					events: true,
+					bookingStatus: true,
+					paymentStatus: true,
+					services: true,
 					payments: true,
+					assignedEmployees: {
+						include: {
+							employee: {
+								include: {
+									users: {
+										select: {
+											name: true,
+										},
+									},
+								},
+							},
+							service: true,
+						},
+					},
 				},
 			});
-
-			// If no bookings found, return an empty array
 
 			// Transform the data to include the required fields
 			const transformedBookings = bookings.map((booking) => ({
@@ -157,7 +178,7 @@ export default class BookingService {
 				advancePayment: booking.advancePayment,
 				bookedAt: booking.bookedAt,
 				bookingStatus: booking.bookingStatus.name,
-				bookingStatusId:booking.bookingStatus.id,
+				bookingStatusId: booking.bookingStatus.id,
 				paymentStatus: booking.paymentStatus.name,
 				paymentStatusId: booking.paymentStatus.id,
 				serviceName: booking.services.serviceName,
@@ -167,9 +188,14 @@ export default class BookingService {
 				eventName: booking.events.eventName,
 				eventDate: booking.events.eventDate,
 				venueAddress: booking.events.location,
+				assignedEmployees: booking.assignedEmployees.map((assignment) => ({
+					id: assignment.id,
+					name: assignment.employee.users.name,
+					designation: assignment.employee.designation,
+					serviceName: assignment.service.serviceName,
+				})),
 			}));
 
-			// Return successful result
 			return serviceUtil.buildResult(
 				true,
 				httpStatusCodes.SUCCESS_OK,
@@ -180,7 +206,7 @@ export default class BookingService {
 			console.log(error);
 			return serviceUtil.buildResult(
 				true,
-				httpStatusCodes.SERVER_ERROR_INTERNAL_SERVER_ERROR, // Internal server error for any issues with Firebase or DB
+				httpStatusCodes.SERVER_ERROR_INTERNAL_SERVER_ERROR,
 				genericServiceErrors.errors.SomethingWentWrong
 			);
 		}
@@ -212,7 +238,7 @@ export default class BookingService {
 				if (!serviceExist) {
 					return serviceUtil.buildResult(
 						false,
-						httpStatusCodes.CLIENT_ERROR_NOT_FOUND, // Internal server error for any issues with Firebase or DB
+						httpStatusCodes.CLIENT_ERROR_NOT_FOUND,
 						genericServiceErrors.generic.ServiceDoesNotExist
 					);
 				}
@@ -225,24 +251,22 @@ export default class BookingService {
 				if (!statusExist)
 					return serviceUtil.buildResult(
 						false,
-						httpStatusCodes.CLIENT_ERROR_NOT_FOUND, // Internal server error for any issues with Firebase or DB
+						httpStatusCodes.CLIENT_ERROR_NOT_FOUND,
 						genericServiceErrors.generic.StatusDoesNotExist
 					);
 			}
 
 			if (updateDTO.paymentStatusId) {
-
 				const paymentStatusExist = await prisma.status.findUnique({
 					where: {id: updateDTO.paymentStatusId},
 				});
-				if (!paymentStatusExist){
-
-				return serviceUtil.buildResult(
-					false,
-					httpStatusCodes.CLIENT_ERROR_NOT_FOUND, // Internal server error for any issues with Firebase or DB
-					genericServiceErrors.generic.PaymentStatusDoesNotExist
-				);
-			}
+				if (!paymentStatusExist) {
+					return serviceUtil.buildResult(
+						false,
+						httpStatusCodes.CLIENT_ERROR_NOT_FOUND,
+						genericServiceErrors.generic.PaymentStatusDoesNotExist
+					);
+				}
 			}
 
 			// 3. Prepare update data
@@ -263,10 +287,16 @@ export default class BookingService {
 			const bookingUpdateData: any = {};
 			if (updateDTO.serviceId)
 				bookingUpdateData.serviceId = updateDTO.serviceId;
-			if (updateDTO.bookingStatusId) bookingUpdateData.statusId = updateDTO.bookingStatusId;
+			if (updateDTO.bookingStatusId)
+				bookingUpdateData.statusId = updateDTO.bookingStatusId;
 			if (updateDTO.paymentStatusId)
 				bookingUpdateData.paymentStatusId = updateDTO.paymentStatusId;
-			if (updateDTO.budget) bookingUpdateData.totalCost = updateDTO.budget;
+			if (updateDTO.budget)
+				bookingUpdateData.totalCost = new Prisma.Decimal(updateDTO.budget);
+			if (updateDTO.advancePayment !== undefined)
+				bookingUpdateData.advancePayment = new Prisma.Decimal(
+					updateDTO.advancePayment
+				);
 
 			// 4. Perform atomic updates
 			const [updatedEvent, updatedBooking] = await prisma.$transaction([
@@ -280,7 +310,27 @@ export default class BookingService {
 				}),
 			]);
 
-			// 5. Prepare response
+			// 5. Update assigned employees if provided
+			if (updateDTO.assignedEmployeeIds) {
+				// Delete existing assignments
+				await prisma.assignedEmployee.deleteMany({
+					where: {bookingId},
+				});
+
+				// Create new assignments
+				if (updateDTO.assignedEmployeeIds.length > 0) {
+					await prisma.assignedEmployee.createMany({
+						data: updateDTO.assignedEmployeeIds.map((employeeId) => ({
+							id: securityUtil.generateUUID(),
+							bookingId,
+							employeeId,
+							serviceId: updateDTO.serviceId || existingBooking.serviceId,
+						})),
+					});
+				}
+			}
+
+			// 6. Prepare response
 			const responseData = {
 				...updatedBooking,
 				event: updatedEvent,
@@ -352,62 +402,62 @@ export default class BookingService {
 		}
 	}
 
-	public async getBookingRequest(): Promise<iGenericServiceResult<any>> {
-		try {
-			const bookingRequest = await prisma.bookingRequest.findMany({
-				select: {
-					id: true,
-					name: true,
-					email: true,
-					phone: true,
-					location: true,
-					notes: true,
-					createdAt: true,
-					date: true,
-					service: {
-						select: {
-							serviceName: true,
-							id: true,
-						},
-					},
-					statuses: {
-						select: {
-							name: true,
-							id: true,
-						},
-					},
-				},
-				orderBy: {
-					createdAt: "desc", // latest first
-				},
-			});
-			const transformedBookingRequest = bookingRequest.map((booking) => ({
-				id: booking.id,
-				customerName: booking.name,
-				email: booking.email,
-				phoneNumber: booking.phone,
-				eventDate: booking.date,
-				location: booking.location,
-				notes: booking.notes,
-				bookingRequestAt: booking.createdAt,
-				serviceName: booking.service.serviceName,
-				serviceId: booking.service.id,
-				statusName: booking.statuses.name,
-				statusId: booking.statuses.id,
-			}));
-			return serviceUtil.buildResult(
-				true,
-				httpStatusCodes.SUCCESS_OK,
-				null,
-				transformedBookingRequest
-			);
-		} catch (error) {
-			console.log(error);
-			return serviceUtil.buildResult(
-				true,
-				httpStatusCodes.SERVER_ERROR_INTERNAL_SERVER_ERROR, // Internal server error for any issues with Firebase or DB
-				genericServiceErrors.errors.SomethingWentWrong
-			);
-		}
-	}
+	// public async getBookingRequest(): Promise<iGenericServiceResult<any>> {
+	// 	try {
+	// 		const bookingRequest = await prisma.bookingRequest.findMany({
+	// 			select: {
+	// 				id: true,
+	// 				name: true,
+	// 				email: true,
+	// 				phone: true,
+	// 				location: true,
+	// 				notes: true,
+	// 				createdAt: true,
+	// 				date: true,
+	// 				service: {
+	// 					select: {
+	// 						serviceName: true,
+	// 						id: true,
+	// 					},
+	// 				},
+	// 				statuses: {
+	// 					select: {
+	// 						name: true,
+	// 						id: true,
+	// 					},
+	// 				},
+	// 			},
+	// 			orderBy: {
+	// 				createdAt: "desc", // latest first
+	// 			},
+	// 		});
+	// 		const transformedBookingRequest = bookingRequest.map((booking) => ({
+	// 			id: booking.id,
+	// 			customerName: booking.name,
+	// 			email: booking.email,
+	// 			phoneNumber: booking.phone,
+	// 			eventDate: booking.date,
+	// 			location: booking.location,
+	// 			notes: booking.notes,
+	// 			bookingRequestAt: booking.createdAt,
+	// 			serviceName: booking.service.serviceName,
+	// 			serviceId: booking.service.id,
+	// 			statusName: booking.statuses.name,
+	// 			statusId: booking.statuses.id,
+	// 		}));
+	// 		return serviceUtil.buildResult(
+	// 			true,
+	// 			httpStatusCodes.SUCCESS_OK,
+	// 			null,
+	// 			transformedBookingRequest
+	// 		);
+	// 	} catch (error) {
+	// 		console.log(error);
+	// 		return serviceUtil.buildResult(
+	// 			true,
+	// 			httpStatusCodes.SERVER_ERROR_INTERNAL_SERVER_ERROR, // Internal server error for any issues with Firebase or DB
+	// 			genericServiceErrors.errors.SomethingWentWrong
+	// 		);
+	// 	}
+	// }
 }

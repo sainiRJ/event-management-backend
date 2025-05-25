@@ -73,10 +73,11 @@ export default class EmployeeService {
 						id: securityUtil.generateUUID(),
 						userId: user.id,
 						designation: employeeBodyDTO.designation,
-						salary: new Prisma.Decimal(employeeBodyDTO.salary),
 						joinedDate: new Date(employeeBodyDTO.joinedDate),
 						statusId: employeeBodyDTO.statusId,
-						vendorId: employeeBodyDTO.vendorId!||'112538a1-aa00-417a-879a-48d444dcc5a2',
+						vendorId:
+							employeeBodyDTO.vendorId! ||
+							"112538a1-aa00-417a-879a-48d444dcc5a2",
 					},
 				});
 
@@ -129,7 +130,6 @@ export default class EmployeeService {
 				phoneNumber: employee.users.phoneNumber,
 				joinedDate: employee.joinedDate,
 				status: employee.statuses.name,
-				salary: employee.salary,
 				designation: employee.designation,
 			};
 
@@ -197,7 +197,6 @@ export default class EmployeeService {
 					phoneNumber: employee.users.phoneNumber,
 					joinedDate: employee.joinedDate,
 					status: employee.statuses.name,
-					salary: employee.salary,
 					designation: employee.designation,
 				};
 
@@ -250,8 +249,6 @@ export default class EmployeeService {
 
 				if (updateData.designation)
 					employeeUpdateData.designation = updateData.designation;
-				if (updateData.salary)
-					employeeUpdateData.salary = new Prisma.Decimal(updateData.salary);
 				if (updateData.joinedDate)
 					employeeUpdateData.joinedDate = new Date(updateData.joinedDate);
 				if (updateData.statusId)
