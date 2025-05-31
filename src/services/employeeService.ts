@@ -343,6 +343,16 @@ export default class EmployeeService {
 					users: true,
 					statuses: true,
 					assignedEmployees: {
+						where: {
+							booking: {
+								events: {
+									eventDate: {
+										lte: new Date(), // Only past events
+									},
+								},
+							},
+							isPaid: false, // Only unpaid services
+						},
 						include: {
 							service: {
 								include: {
@@ -369,12 +379,6 @@ export default class EmployeeService {
 				for (const assigned of employee.assignedEmployees) {
 					const serviceId = assigned.serviceId;
 					const serviceName = assigned.service.serviceName;
-					const eventDate = assigned.booking.events.eventDate;
-
-					// Only include past events
-					if (eventDate > new Date()) {
-						continue;
-					}
 
 					// Get service rate for this employee
 					const serviceRate =
@@ -400,12 +404,6 @@ export default class EmployeeService {
 					const stats = serviceStatsMap[serviceId];
 					stats.count++;
 					stats.totalAmount += serviceAmount;
-
-					// If service is paid, add to paid amount, otherwise it's remaining
-					if (assigned.isPaid) {
-						stats.paidAmount += serviceAmount;
-					}
-					// Calculate remaining amount for this service
 					stats.remainingAmount = stats.totalAmount - stats.paidAmount;
 				}
 
@@ -497,6 +495,17 @@ export default class EmployeeService {
 				let totalPaid = Number(employee.totalPaid || 0) + paymentData.amount;
 				let extraAmount = Number(employee.extraAmount || 0);
 				let remainingAmount = Number(employee.totalRemaining || 0);
+				let remainingPayment = paymentData.amount;
+
+				// First, handle any negative extraAmount from previous partial payments
+				if (extraAmount < 0) {
+					const amountToCover = Math.min(
+						Math.abs(extraAmount),
+						remainingPayment
+					);
+					extraAmount += amountToCover;
+					remainingPayment -= amountToCover;
+				}
 
 				// Process assigned employees based on payment type
 				if (paymentData.autoPaid) {
@@ -509,7 +518,6 @@ export default class EmployeeService {
 								b.booking.events.eventDate.getTime()
 						);
 
-					let totalServiceAmount = 0;
 					for (const assignment of sortedAssignments) {
 						// Get service rate for this employee
 						const serviceRate =
@@ -521,7 +529,7 @@ export default class EmployeeService {
 							);
 						const serviceAmount = serviceRate ? Number(serviceRate.charge) : 0;
 
-						if (paymentData.amount >= totalServiceAmount + serviceAmount) {
+						if (remainingPayment >= serviceAmount) {
 							await tx.assignedEmployee.update({
 								where: {id: assignment.id},
 								data: {
@@ -529,16 +537,16 @@ export default class EmployeeService {
 									paidAt: new Date(),
 								},
 							});
-							totalServiceAmount += serviceAmount;
+							remainingPayment -= serviceAmount;
 							remainingAmount -= serviceAmount;
 						} else {
 							break;
 						}
 					}
-					// Calculate extra amount (negative means we owe employee, positive means employee has extra)
-					extraAmount = paymentData.amount - totalServiceAmount;
+					// Any remaining payment goes to extra amount
+					extraAmount += remainingPayment;
 				} else if (paymentData.assignedEmployeeIds) {
-					// Mark specific services as paid
+					// For specific service payments, always mark as paid
 					let totalServiceAmount = 0;
 					for (const assignmentId of paymentData.assignedEmployeeIds) {
 						const assignment = employee.assignedEmployees.find(
@@ -556,7 +564,9 @@ export default class EmployeeService {
 							const serviceAmount = serviceRate
 								? Number(serviceRate.charge)
 								: 0;
+							totalServiceAmount += serviceAmount;
 
+							// Mark service as paid
 							await tx.assignedEmployee.update({
 								where: {id: assignmentId},
 								data: {
@@ -564,12 +574,14 @@ export default class EmployeeService {
 									paidAt: new Date(),
 								},
 							});
-							totalServiceAmount += serviceAmount;
 							remainingAmount -= serviceAmount;
 						}
 					}
-					// Calculate extra amount (negative means we owe employee, positive means employee has extra)
-					extraAmount = paymentData.amount - totalServiceAmount;
+					// Any remaining payment goes to extra amount
+					extraAmount += remainingPayment - totalServiceAmount;
+				} else {
+					// If no specific services selected and no auto-pay, add to extra amount
+					extraAmount += remainingPayment;
 				}
 
 				// Update employee payment totals
