@@ -98,9 +98,10 @@ const authRoute: RouteType = (apiRouter) =>{
             res: iResponse<any>,
             next: NextFunction
         ) => {
+            const token = req.cookies?.refresh_token
             const id= req.user?.id
             const email = req.user?.email
-            const userData = {id, email}
+            const userData = {id, email, token}
             const {httpStatusCode, responseBody} = await authService.getAccessToken(userData);
             res.status(httpStatusCode).json(responseBody);
         }

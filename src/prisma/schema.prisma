@@ -79,16 +79,31 @@ model Employee {
   statusId    String    @db.Char(36) @map("status_id")
   createdAt   DateTime? @default(now()) @db.Timestamp(0) @map("created_at")
   updatedAt   DateTime? @default(now()) @db.Timestamp(0) @map("updated_at")
+  totalPaid   Decimal   @default(0) @db.Decimal(10, 2) @map("total_paid")
+  totalRemaining Decimal @default(0) @db.Decimal(10, 2) @map("total_remaining")
+  extraAmount  Decimal   @default(0) @db.Decimal(10, 2) @map("extra_amount")
   users       User      @relation("employee_user", fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "employees_ibfk_1")
   vendor      User      @relation("employee_vendor", fields: [vendorId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "employees_ibfk_3")
   statuses    Status    @relation(fields: [statusId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "employees_ibfk_2")
   serviceRates ServiceRate[]
   assignedEmployees AssignedEmployee[]
+  paymentHistory EmployeePaymentHistory[]
 
   @@index([statusId], map: "status_id")
   @@index([userId], map: "user_id")
   @@index([vendorId], map: "vendor_id")
   @@map("employees")
+}
+
+model EmployeePaymentHistory {
+  id          String    @id @default(uuid()) @db.Char(36)
+  employeeId  String    @db.Char(36) @map("employee_id")
+  amount      Decimal   @db.Decimal(10, 2)
+  paidAt      DateTime  @default(now()) @db.Timestamp(0) @map("paid_at")
+  employee    Employee  @relation(fields: [employeeId], references: [id])
+
+  @@index([employeeId])
+  @@map("employee_payment_history")
 }
 
 model Event {
@@ -245,6 +260,8 @@ model AssignedEmployee {
   bookingId   String
   employeeId  String
   serviceId   String
+  isPaid      Boolean   @default(false) @map("is_paid")
+  paidAt      DateTime? @db.Timestamp(0) @map("paid_at")
   booking     Bookings  @relation(fields: [bookingId], references: [id])
   employee    Employee  @relation(fields: [employeeId], references: [id])
   service     Service   @relation(fields: [serviceId], references: [id])
