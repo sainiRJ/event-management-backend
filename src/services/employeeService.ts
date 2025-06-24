@@ -710,4 +710,102 @@ export default class EmployeeService {
 			);
 		}
 	}
+
+	/**
+	 * Get all assigned services for a specific employee
+	 */
+	public async getEmployeeServiceHistory(
+		employeeId: string
+	): Promise<iGenericServiceResult<any>> {
+		try {
+			const employee = await prisma.employee.findUnique({
+				where: {id: employeeId},
+				include: {
+					users: true,
+					assignedEmployees: {
+						where: {
+							booking: {
+								events: {
+									eventDate: {
+										lt: new Date(), // Only past events
+									},
+								},
+								bookingStatus: {
+									name: {
+										not: "cancelled",
+									},
+								},
+							},
+						},
+						include: {
+							service: {
+								include: {
+									serviceRates: true,
+								},
+							},
+							booking: {
+								include: {
+									events: true,
+									bookingStatus: true,
+								},
+							},
+						},
+						orderBy: {
+							booking: {
+								events: {
+									eventDate: "desc",
+								},
+							},
+						},
+					},
+				},
+			});
+
+			if (!employee) {
+				return serviceUtil.buildResult(
+					false,
+					httpStatusCodes.CLIENT_ERROR_NOT_FOUND,
+					genericServiceErrors.generic.EmployeeDoesNotExist
+				);
+			}
+
+			const assignedServices = employee.assignedEmployees.map((assignment) => {
+				// Get service rate for this employee
+				const serviceRate =
+					assignment.service.serviceRates.find(
+						(rate) => rate.employeeId === employeeId
+					) ||
+					assignment.service.serviceRates.find(
+						(rate) => rate.employeeId === null
+					);
+				const serviceAmount = serviceRate ? Number(serviceRate.charge) : 0;
+
+				return {
+					assignedEmployeeId: assignment.id,
+					serviceId: assignment.serviceId,
+					serviceName: assignment.service.serviceName,
+					amount: serviceAmount,
+					eventDate: assignment.booking.events.eventDate,
+					customerName: assignment.booking.events.customerName,
+					location: assignment.booking.events.location,
+					eventName: assignment.booking.events.eventName,
+					isPaid: assignment.isPaid,
+					paidAt: assignment.paidAt,
+				};
+			});
+
+			return serviceUtil.buildResult(true, httpStatusCodes.SUCCESS_OK, null, {
+				employeeId: employee.id,
+				employeeName: employee.users.name,
+				assignedServices,
+			});
+		} catch (error: any) {
+			console.error(error);
+			return serviceUtil.buildResult(
+				false,
+				httpStatusCodes.SERVER_ERROR_INTERNAL_SERVER_ERROR,
+				genericServiceErrors.errors.SomethingWentWrong
+			);
+		}
+	}
 }

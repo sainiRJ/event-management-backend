@@ -182,6 +182,27 @@ const employeeRoute: RouteType = (apiRouter) => {
 			}
 		}
 	);
+	// Get Assigned Services for Specific Employee
+	route.get(
+		"/:employeeId/service-history",
+		authenticateToken,
+		celebrate({
+			[Segments.PARAMS]: Joi.object({
+				employeeId: Joi.string().uuid().required(),
+			}),
+		}),
+		async (req: iRequest<any>, res: iResponse<any>, next: NextFunction) => {
+			try {
+				const {httpStatusCode, responseBody} =
+					await employeeService.getEmployeeServiceHistory(
+						req.params.employeeId
+					);
+				res.status(httpStatusCode).json(responseBody);
+			} catch (error) {
+				next(error);
+			}
+		}
+	);
 };
 
 export default employeeRoute;
