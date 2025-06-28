@@ -450,6 +450,7 @@ export default class EmployeeService {
 	public async updateEmployeePayment(
 		paymentData: iEmployeePaymentUpdateDTO
 	): Promise<iGenericServiceResult<any>> {
+		console.log(paymentData.employeeId);
 		try {
 			const employee = await prisma.employee.findUnique({
 				where: {id: paymentData.employeeId},
@@ -797,6 +798,9 @@ export default class EmployeeService {
 			return serviceUtil.buildResult(true, httpStatusCodes.SUCCESS_OK, null, {
 				employeeId: employee.id,
 				employeeName: employee.users.name,
+				totalPaid: employee.totalPaid,
+				totalRemaining: employee.totalRemaining,
+				extraAmount: employee.extraAmount,
 				assignedServices,
 			});
 		} catch (error: any) {
