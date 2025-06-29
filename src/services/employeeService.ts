@@ -446,11 +446,11 @@ export default class EmployeeService {
 
 	/**
 	 * Update employee payment and mark services as paid
+	 * this function use for maintain employee payment
 	 */
 	public async updateEmployeePayment(
 		paymentData: iEmployeePaymentUpdateDTO
 	): Promise<iGenericServiceResult<any>> {
-		console.log(paymentData.employeeId);
 		try {
 			const employee = await prisma.employee.findUnique({
 				where: {id: paymentData.employeeId},
@@ -480,80 +480,41 @@ export default class EmployeeService {
 				);
 			}
 
-			const result = await prisma.$transaction(async (tx) => {
-				// Create payment history record
-				const paymentHistory = await tx.employeePaymentHistory.create({
-					data: {
-						id: securityUtil.generateUUID(),
-						employeeId: paymentData.employeeId,
-						amount: paymentData.amount,
-						paidAt: paymentData.paidAt
-							? new Date(paymentData.paidAt)
-							: new Date(),
-					},
-				});
+			let totalPaidAmountWithExtraAmount =
+				paymentData.amount + Number(employee.totalPaid);
 
-				let totalPaid = Number(employee.totalPaid || 0) + paymentData.amount;
-				let extraAmount = Number(employee.extraAmount || 0);
-				let remainingAmount = Number(employee.totalRemaining || 0);
-				let remainingPayment = paymentData.amount;
+			const result = await prisma.$transaction(
+				async (tx) => {
+					// Create payment history record
+					const paymentHistory = await tx.employeePaymentHistory.create({
+						data: {
+							id: securityUtil.generateUUID(),
+							employeeId: paymentData.employeeId,
+							amount: paymentData.amount,
+							paidAt: paymentData.paidAt
+								? new Date(paymentData.paidAt)
+								: new Date(),
+						},
+					});
 
-				// First, handle any negative extraAmount from previous partial payments
-				if (extraAmount < 0) {
-					const amountToCover = Math.min(
-						Math.abs(extraAmount),
-						remainingPayment
-					);
-					extraAmount += amountToCover;
-					remainingPayment -= amountToCover;
-				}
+					let totalPaid = Number(employee.totalPaid || 0);
+					let extraAmount = Number(employee.extraAmount || 0);
+					let remainingAmount = Number(employee.totalRemaining || 0);
+					let remainingPayment = totalPaidAmountWithExtraAmount;
 
-				// Process assigned employees based on payment type
-				if (paymentData.autoPaid) {
-					// Sort by event date and mark as paid until amount is exhausted
-					const sortedAssignments = [...employee.assignedEmployees]
-						.filter((a) => !a.isPaid)
-						.sort(
-							(a, b) =>
-								a.booking.events.eventDate.getTime() -
-								b.booking.events.eventDate.getTime()
-						);
 
-					for (const assignment of sortedAssignments) {
-						// Get service rate for this employee
-						const serviceRate =
-							assignment.service.serviceRates.find(
-								(rate) => rate.employeeId === employee.id
-							) ||
-							assignment.service.serviceRates.find(
-								(rate) => rate.employeeId === null
+					// Process assigned employees based on payment type
+					if (paymentData.autoPaid) {
+						// Sort by event date and mark as paid until amount is exhausted
+						const sortedAssignments = [...employee.assignedEmployees]
+							.filter((a) => !a.isPaid)
+							.sort(
+								(a, b) =>
+									a.booking.events.eventDate.getTime() -
+									b.booking.events.eventDate.getTime()
 							);
-						const serviceAmount = serviceRate ? Number(serviceRate.charge) : 0;
 
-						if (remainingPayment >= serviceAmount) {
-							await tx.assignedEmployee.update({
-								where: {id: assignment.id},
-								data: {
-									isPaid: true,
-									paidAt: new Date(),
-								},
-							});
-							remainingPayment -= serviceAmount;
-							remainingAmount -= serviceAmount;
-						} else {
-							break;
-						}
-					}
-					// Any remaining payment goes to extra amount
-					extraAmount += remainingPayment;
-				} else if (paymentData.assignedEmployeeIds) {
-					// For specific service payments, always mark as paid
-					let totalServiceAmount = 0;
-					for (const assignmentId of paymentData.assignedEmployeeIds) {
-						const assignment = employee.assignedEmployees.find(
-							(a) => a.id === assignmentId
-						);
-						if (assignment && !assignment.isPaid) {
+						for (const assignment of sortedAssignments) {
 							// Get service rate for this employee
 							const serviceRate =
 								assignment.service.serviceRates.find(
@@ -565,38 +526,97 @@ export default class EmployeeService {
 							const serviceAmount = serviceRate
 								? Number(serviceRate.charge)
 								: 0;
-							totalServiceAmount += serviceAmount;
 
-							// Mark service as paid
-							await tx.assignedEmployee.update({
-								where: {id: assignmentId},
-								data: {
-									isPaid: true,
-									paidAt: new Date(),
-								},
-							});
-							remainingAmount -= serviceAmount;
+							if (remainingPayment >= serviceAmount) {
+								await tx.assignedEmployee.update({
+									where: {id: assignment.id},
+									data: {
+										isPaid: true,
+										paidAt: new Date(),
+									},
+								});
+								remainingPayment -= serviceAmount;
+							} else {
+								break;
+							}
 						}
+						// Any remaining payment goes to extra amount
+						extraAmount = remainingPayment;
+					} else if (paymentData.assignedEmployeeIds) {
+						// For specific service payments, always mark as paid
+						let totalServiceAmount = 0;
+						for (const assignmentId of paymentData.assignedEmployeeIds) {
+							const assignment = employee.assignedEmployees.find(
+								(a) => a.id === assignmentId
+							);
+							if (assignment && !assignment.isPaid) {
+								// Get service rate for this employee
+								const serviceRate =
+									assignment.service.serviceRates.find(
+										(rate) => rate.employeeId === employee.id
+									) ||
+									assignment.service.serviceRates.find(
+										(rate) => rate.employeeId === null
+									);
+								const serviceAmount = serviceRate
+									? Number(serviceRate.charge)
+									: 0;
+								totalServiceAmount += serviceAmount;
+
+								// Mark service as paid
+								await tx.assignedEmployee.update({
+									where: {id: assignmentId},
+									data: {
+										isPaid: true,
+										paidAt: new Date(),
+									},
+								});
+							}
+						}
+						// Any remaining payment goes to extra amount
+						extraAmount = totalPaidAmountWithExtraAmount - totalServiceAmount;
+						totalPaid += totalServiceAmount;
+					} else {
+						// If no specific services selected and no auto-pay, add to extra amount
+						extraAmount += paymentData.amount;
 					}
-					// Any remaining payment goes to extra amount
-					extraAmount += remainingPayment - totalServiceAmount;
-				} else {
-					// If no specific services selected and no auto-pay, add to extra amount
-					extraAmount += remainingPayment;
-				}
+					const assigned = await tx.assignedEmployee.findMany({
+						where: {
+							employeeId: employee.id,
+							isPaid: false,
+						},
+						include: {
+							service: {
+								include: {
+									serviceRates: true,
+								},
+							},
+						},
+					});
 
-				// Update employee payment totals
-				const updatedEmployee = await tx.employee.update({
-					where: {id: paymentData.employeeId},
-					data: {
-						totalPaid,
-						totalRemaining: remainingAmount,
-						extraAmount,
-					},
-				});
+					remainingAmount = assigned.reduce((total, emp) => {
+						const rate =
+							emp.service?.serviceRates.find(
+								(r) => r.employeeId === emp.employeeId
+							) ?? emp.service?.serviceRates.find((r) => r.employeeId === null);
+						const charge = rate ? Number(rate.charge) : 0;
+						return total + charge;
+					}, 0);
 
-				return {paymentHistory, employee: updatedEmployee};
-			});
+					// Update employee payment totals
+					const updatedEmployee = await tx.employee.update({
+						where: {id: paymentData.employeeId},
+						data: {
+							totalPaid,
+							totalRemaining: remainingAmount,
+							extraAmount,
+						},
+					});
+
+					return {paymentHistory, employee: updatedEmployee};
+				},
+				{timeout: 20000}
+			); // 20 seconds
 
 			return serviceUtil.buildResult(
 				true,
