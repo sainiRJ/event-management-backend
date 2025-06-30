@@ -481,7 +481,7 @@ export default class EmployeeService {
 			}
 
 			let totalPaidAmountWithExtraAmount =
-				paymentData.amount + Number(employee.totalPaid);
+				paymentData.amount + Number(employee.extraAmount);
 
 			const result = await prisma.$transaction(
 				async (tx) => {
@@ -779,6 +779,7 @@ export default class EmployeeService {
 							},
 						},
 					},
+					paymentHistory: true
 				},
 			});
 
@@ -815,6 +816,12 @@ export default class EmployeeService {
 				};
 			});
 
+			const paymentHistory = employee.paymentHistory.map((entry)=>({
+				id: entry.id,
+				amount: entry.amount,
+				paidAt: entry.paidAt
+			}))
+
 			return serviceUtil.buildResult(true, httpStatusCodes.SUCCESS_OK, null, {
 				employeeId: employee.id,
 				employeeName: employee.users.name,
@@ -822,6 +829,7 @@ export default class EmployeeService {
 				totalRemaining: employee.totalRemaining,
 				extraAmount: employee.extraAmount,
 				assignedServices,
+				paymentHistory
 			});
 		} catch (error: any) {
 			console.error(error);
