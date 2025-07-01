@@ -4,6 +4,8 @@ import { Server as HttpServer } from 'http';
 import chatService from './chatService';
 import securityUtil from "../utils/securityUtil";
 import { config } from 'dotenv';
+import { llmTools } from "../utils/llmTools";
+import { checkAvailabilityTool, createBookingTool } from "./llmToolHandlers";
 
 config()
 
@@ -75,12 +77,53 @@ export default class SocketService {
         try {
           const chatHistory = chatSessions[sessionId] || [];
           chatHistory.push({ role: 'user', content: message });
+          console.log("message", message);
+          console.log("chatHistory", chatHistory);
+
 
           const response = await this.chatService.generateResponse(message, chatHistory);
+          console.log("response", response);
           const aiReply = response.responseBody.data;
 
+          let parsedAction;
+          try {
+            parsedAction = JSON.parse(aiReply);
+          } catch (e) {
+            parsedAction = null;
+          }
+
+          if (parsedAction && parsedAction.action) {
+            const { action, parameters, message } = parsedAction;
+
+            if (action === "checkAvailability") {
+              const result = await checkAvailabilityTool(parameters);
+              socket.emit('chat:response', {
+                content: `✅ ${result.message || "Availability checked."}`,
+                timestamp: new Date().toISOString(),
+                isComplete: true
+              });
+
+              chatHistory.push({ role: 'assistant', content: result.message });
+              chatSessions[sessionId] = chatHistory;
+              return;
+            }
+
+            if (action === "createBooking") {
+              const result = await createBookingTool(parameters);
+              socket.emit('chat:response', {
+                content: `✅ ${result.message || "Booking request created."}`,
+                timestamp: new Date().toISOString(),
+                isComplete: true
+              });
+
+              chatHistory.push({ role: 'assistant', content: result.message });
+              chatSessions[sessionId] = chatHistory;
+              return;
+            }
+          }
+
+          // If not structured, fallback to normal reply
           chatHistory.push({ role: 'assistant', content: aiReply });
-          chatSessions[sessionId] = chatHistory;
 
           let currentText = '';
           for (const char of aiReply) {

@@ -101,7 +101,31 @@ export default class ChatService {
 					)
 					.join("\n");
 
-				const prompt = `${BUSINESS_CONTEXT}\n\n${historyText}\nUser: ${currentMessage}`;
+				const prompt = `${BUSINESS_CONTEXT}
+
+					🎯 Whenever user asks to check availability or make a booking, always respond in the following JSON format:
+
+					{
+					"action": "checkAvailability" | "createBooking" | "none",
+					"parameters": {
+						"serviceType": string,
+						"date": string,
+						"name"?: string,
+						"phoneNumber"?: string,
+						"email"?: string,
+						"location"?: string,
+						"notes"?: string
+					},
+					"message": "Optional message to confirm action"
+					}
+
+					If not sure, respond with { "action": "none", "message": "..." }
+
+					History:
+					${historyText}
+
+					User: ${currentMessage}
+				`;
 
 				const response = await axios.post(
 					`${this.geminiEndpoint}?key=${process.env.GEMINI_API_KEY}`,
