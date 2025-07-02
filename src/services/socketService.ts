@@ -109,14 +109,10 @@ export default class SocketService {
 					const chatHistory = chatSessions[sessionId] || [];
 					chatHistory.push({role: "user", content: message});
 					chatSessions[sessionId] = chatHistory;
-					console.log("message", message);
-					console.log("chatHistory", chatHistory);
-
 					const response = await this.chatService.generateResponse(
 						message,
 						chatHistory
 					);
-					console.log("response", response);
 					const aiReply = response.responseBody.data;
 
 					let parsedAction = null;
@@ -137,6 +133,7 @@ export default class SocketService {
 
 					if (parsedAction && parsedAction.action) {
 						const {action, parameters, message: replyMessage} = parsedAction;
+						console.log("parsedAction ", parsedAction)
 
 						if (action === "checkAvailability") {
 							const missing = hasRequiredParams(parameters, [
@@ -144,15 +141,20 @@ export default class SocketService {
 								"date",
 							]);
 							if (missing.length) {
+								const fallbackMsg = replyMessage || `❗ Missing information: ${missing.join(", ")}. Please provide these details to check availability.`;
+
 								socket.emit("chat:response", {
-									content: `❗ Missing information: ${missing.join(", ")}. Please provide these details to check availability.`,
+									content: fallbackMsg,
 									timestamp: new Date().toISOString(),
 									isComplete: true,
 								});
+								chatHistory.push({ role: "assistant", content: fallbackMsg });
+								chatSessions[sessionId] = chatHistory;
 								return;
 							}
 							try {
 								const result = await checkAvailabilityTool(parameters);
+								console.log("result ", result)
 								// Prefer tool result message, fallback to LLM message, then default
 								const finalMessage =
 									result?.message ||
@@ -217,11 +219,19 @@ export default class SocketService {
 					}
 
 					// If not structured, fallback to normal reply
-					chatHistory.push({role: "assistant", content: aiReply});
+					let fallbackMessage = '';
+
+					try {
+					const parsed = JSON.parse(aiReply);
+					fallbackMessage = parsed.message || JSON.stringify(parsed);
+					} catch {
+					fallbackMessage = aiReply;
+					}
+					chatHistory.push({role: "assistant", content: fallbackMessage});
 					chatSessions[sessionId] = chatHistory;
 
 					let currentText = "";
-					for (const char of aiReply) {
+					for (const char of fallbackMessage) {
 						currentText += char;
 						socket.emit("chat:stream", {
 							content: currentText,
@@ -232,7 +242,7 @@ export default class SocketService {
 					}
 
 					socket.emit("chat:response", {
-						content: aiReply,
+						content: fallbackMessage,
 						timestamp: new Date().toISOString(),
 						isComplete: true,
 					});
