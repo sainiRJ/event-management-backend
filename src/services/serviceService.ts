@@ -14,6 +14,9 @@ export default class ServiceService {
 	public async allService(): Promise<iGenericServiceResult<iService[]>> {
 		try {
 			const services = await prisma.service.findMany({
+				where: {
+					available: true
+				},
 				select: {
 					id: true,
 					serviceName: true,

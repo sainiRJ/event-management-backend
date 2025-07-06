@@ -31,9 +31,8 @@ export default class UserService {
 			}
 			//if roleId not in userBodyDTO, then add "13c0d05d-f6cb-11ef-a485-00163c34c678" in roleId
 			if (!userBodyDTO.roleId) {
-                userBodyDTO.roleId = "13c0d05d-f6cb-11ef-a485-00163c34c678";
-            }
-
+				userBodyDTO.roleId = "13c0d05d-f6cb-11ef-a485-00163c34c678";
+			}
 
 			// check email exists or not
 			const emailExists = await prisma.user.findFirst({
@@ -53,7 +52,7 @@ export default class UserService {
 				return serviceUtil.buildResult(
 					false,
 					httpStatusCodes.CLIENT_ERROR_BAD_REQUEST,
-					genericServiceErrors.errors.ValidationError,
+					genericServiceErrors.errors.ValidationError
 				);
 			}
 
@@ -80,10 +79,132 @@ export default class UserService {
 				true,
 				httpStatusCodes.SUCCESS_OK,
 				null,
-				user,
+				user
 			);
 		} catch (error: any) {
 			console.log(error);
+			return serviceUtil.buildResult(
+				false,
+				httpStatusCodes.SERVER_ERROR_INTERNAL_SERVER_ERROR,
+				genericServiceErrors.errors.SomethingWentWrong
+			);
+		}
+	}
+
+	public async getUserProfile(
+		userId: string
+	): Promise<iGenericServiceResult<any>> {
+		try {
+			const user = await prisma.user.findUnique({
+				where: {
+					id: userId,
+					status: "active",
+				},
+				select: {
+					id: true,
+					name: true,
+					email: true,
+					phoneNumber: true,
+					roles: {
+						select: {
+							id: true,
+							roleName: true,
+						},
+					},
+				},
+			});
+
+			if (!user) {
+				return serviceUtil.buildResult(
+					false,
+					httpStatusCodes.CLIENT_ERROR_NOT_FOUND,
+					genericServiceErrors.generic.UserDoesNotExist
+				);
+			}
+
+			const userResponse = {
+				id: user.id,
+				name: user.name,
+				email: user.email,
+				phoneNumber: user.phoneNumber,
+				role: user.roles.roleName,
+			};
+
+			return serviceUtil.buildResult(
+				true,
+				httpStatusCodes.SUCCESS_OK,
+				null,
+				userResponse
+			);
+		} catch (error) {
+			console.error("Error fetching user profile:", error);
+			return serviceUtil.buildResult(
+				false,
+				httpStatusCodes.SERVER_ERROR_INTERNAL_SERVER_ERROR,
+				genericServiceErrors.errors.SomethingWentWrong
+			);
+		}
+	}
+
+	public async updateUserProfile(
+		userId: string,
+		updateData: {
+			name?: string;
+			phoneNumber?: string;
+		}
+	): Promise<iGenericServiceResult<any>> {
+		try {
+			// Check if user exists
+			const userExists = await prisma.user.findUnique({
+				where: {id: userId},
+			});
+
+			if (!userExists) {
+				return serviceUtil.buildResult(
+					false,
+					httpStatusCodes.CLIENT_ERROR_NOT_FOUND,
+					genericServiceErrors.generic.UserDoesNotExist
+				);
+			}
+
+			// Update user profile
+			const updatedUser = await prisma.user.update({
+				where: {id: userId},
+				data: {
+					name: updateData.name,
+					phoneNumber: updateData.phoneNumber,
+					updatedAt: new Date(),
+				},
+				select: {
+					id: true,
+					name: true,
+					email: true,
+					phoneNumber: true,
+					roles: {
+						select: {
+							id: true,
+							roleName: true,
+						},
+					},
+				},
+			});
+
+			const userResponse = {
+				id: updatedUser.id,
+				name: updatedUser.name,
+				email: updatedUser.email,
+				phoneNumber: updatedUser.phoneNumber,
+				role: updatedUser.roles.roleName,
+			};
+
+			return serviceUtil.buildResult(
+				true,
+				httpStatusCodes.SUCCESS_OK,
+				null,
+				userResponse
+			);
+		} catch (error) {
+			console.error("Error updating user profile:", error);
 			return serviceUtil.buildResult(
 				false,
 				httpStatusCodes.SERVER_ERROR_INTERNAL_SERVER_ERROR,

@@ -89,7 +89,7 @@ const loadExpress = ({app}: {app: express.Application}): void => {
 
 
 	const corsOptions: CorsOptions = {
-		origin: [process.env.CLIENT_FRONTEND_URL, process.env.ADMIN_FRONTEND_URL, "http://localhost:3000", "http://localhost:8080"],
+		origin: [process.env.CLIENT_FRONTEND_URL, process.env.ADMIN_FRONTEND_URL, "http://localhost:3000", "http://localhost:8080", "http://localhost:8090"],
 		methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
 		credentials: true,
 		optionsSuccessStatus: 204,
