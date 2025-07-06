@@ -1,16 +1,18 @@
 import {NextFunction, Router} from "express";
-import {Segments, celebrate} from "celebrate";
+import {Joi, Segments, celebrate} from "celebrate";
 import {RouteType, iRequest, iResponse} from "../../customTypes/expressTypes";
 import {
 	bookingRequestBodySchema,
 	availabilityBodySchema,
 	contactMessageSchema,
 } from "../../validations/clientRouteSchema";
-import {iBookingRequestDTO, iContactMessageDTO} from "../../customTypes/appDataTypes/clientTypes";
+import {
+	iBookingRequestDTO,
+	iContactMessageDTO,
+} from "../../customTypes/appDataTypes/clientTypes";
 import ClientService from "../../services/clientService";
 import {authenticateToken} from "../../middleware/authMiddleware";
-import {Joi} from "celebrate";
-import {date, string} from "joi";
+import {checkAvailabilityTool} from "../../services/llmToolHandlers"
 
 const route = Router();
 
@@ -37,6 +39,7 @@ const clientRoute: RouteType = (apiRouter) => {
 			}
 		}
 	);
+
 	route.post(
 		"/available/request",
 		celebrate({
@@ -71,6 +74,29 @@ const clientRoute: RouteType = (apiRouter) => {
 				const {httpStatusCode, responseBody} =
 					await clientService.createContactMessage(req.body);
 				res.status(httpStatusCode).json(responseBody);
+			} catch (error) {
+				next(error);
+			}
+		}
+	);
+
+		route.post(
+		"/check-available",
+		celebrate({
+			[Segments.BODY]: Joi.object({
+				serviceType: Joi.string(),
+				date: Joi.string()
+			}),
+		}),
+		async (
+			req: iRequest<any>,
+			res,
+			next: NextFunction
+		) => {
+			try {
+				const result =
+					await checkAvailabilityTool(req.body);
+				res.status(200).json(result);
 			} catch (error) {
 				next(error);
 			}

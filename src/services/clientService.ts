@@ -30,34 +30,64 @@ export default class ClientService {
 					genericServiceErrors.generic.InvalidCredentials
 				);
 			}
-			/*
-				as it is booking request service so we put status pending
-				so for make panding we take status id of booking context from status table
-			*/
-			const bookingRequest = await prisma.bookingRequest.create({
+
+			// Create event first
+			const event = await prisma.event.create({
 				data: {
 					id: securityUtil.generateUUID(),
-					name: bookingBodyDTO.name,
-					phone: bookingBodyDTO.phoneNumber,
-					email: bookingBodyDTO.email || "",
-					serviceId: bookingBodyDTO.serviceId,
-					statusId: "ddf760d9-f355-11ef-a485-00163c34c678",
+					customerName: bookingBodyDTO.name,
+					phoneNumber: bookingBodyDTO.phoneNumber,
+					email: bookingBodyDTO.email || null,
+					eventName: "Booking Request",
+					eventDate: new Date(bookingBodyDTO.date),
 					location: bookingBodyDTO.location,
-					date: new Date(bookingBodyDTO.date),
-					notes: bookingBodyDTO.notes,
 					createdAt: new Date(),
 				},
 			});
+
+			// Get pending status IDs
+			const pendingStatus = await prisma.status.findFirst({
+				where: {
+					context: "booking",
+					name: "pending",
+				},
+			});
+
+			if (!pendingStatus) {
+				return serviceUtil.buildResult(
+					false,
+					httpStatusCodes.SERVER_ERROR_INTERNAL_SERVER_ERROR,
+					genericServiceErrors.errors.SomethingWentWrong
+				);
+			}
+
+			// Create booking with client source
+			const booking = await prisma.bookings.create({
+				data: {
+					id: securityUtil.generateUUID(),
+					eventId: event.id,
+					serviceId: bookingBodyDTO.serviceId,
+					vendorId: serviceExist.vendorId,
+					statusId: pendingStatus.id,
+					paymentStatusId: pendingStatus.id,
+					totalCost: 0, // Will be set by vendor later
+					advancePayment: 0, // Will be set by vendor later
+					isOnlineBooking: true,
+					notes: bookingBodyDTO.notes,
+					bookedAt: new Date(),
+				},
+			});
+
 			return serviceUtil.buildResult(
 				true,
 				httpStatusCodes.SUCCESS_CREATED,
 				null,
-				bookingRequest
+				booking
 			);
 		} catch (error) {
 			return serviceUtil.buildResult(
 				false,
-				httpStatusCodes.SERVER_ERROR_INTERNAL_SERVER_ERROR, // Internal server error for any issues with Firebase or DB
+				httpStatusCodes.SERVER_ERROR_INTERNAL_SERVER_ERROR,
 				genericServiceErrors.errors.SomethingWentWrong
 			);
 		}

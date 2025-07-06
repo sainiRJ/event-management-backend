@@ -7,25 +7,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model BookingRequest {
-  id          String     @id @default(uuid()) @db.Char(36)
-  name        String     @db.VarChar(100)
-  email       String     @db.VarChar(100)
-  phone       String     @db.VarChar(15)
-  date        DateTime   @db.Timestamp(0)
-  serviceId   String     @db.Char(36) @map("service_id")
-  location    String     @db.VarChar(255)
-  notes       String?    @db.Text
-  statusId    String     @db.Char(36) @map("status_id")
-  createdAt   DateTime   @default(now()) @db.Timestamp(0) @map("created_at")
-  service     Service    @relation(fields: [serviceId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  statuses    Status    @relation(fields: [statusId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "bookingrequest_ibfk_status")
-  booking               Bookings?
-
-  @@index([serviceId], map: "service_id")
-  @@map("booking_requests")
-}
-
 model Bookings {
   id                                           String     @id @db.Char(36)
   eventId                                      String     @db.Char(36) @map("event_id")
@@ -36,15 +17,16 @@ model Bookings {
   advancePayment                               Decimal?  @db.Decimal(10, 2) @map("advance_payment")
   paymentStatusId                              String     @db.Char(36) @map("payment_status_id")
   bookedAt                                     DateTime?  @default(now()) @db.Timestamp(0) @map("booked_at")
-  bookingRequestId                             String?    @db.Char(36) @unique @map("booking_requests")
+  isOnlineBooking                              Boolean    @default(false) @map("is_online_booking")
+  notes                                        String?    @db.Text
 
   services                                     Service    @relation(fields: [serviceId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "bookings_ibfk_2")
   bookingStatus                                Status     @relation("booking_status", fields: [statusId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "bookings_ibfk_3")
   paymentStatus                                Status     @relation("payment_status", fields: [paymentStatusId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "bookings_ibfk_4")
   events                                       Event      @relation(fields: [eventId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "bookings_ibfk_5")
   vendor                                       User       @relation(fields: [vendorId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "bookings_ibfk_6")
-  bookingRequest                               BookingRequest? @relation(fields: [bookingRequestId], references: [id])
   payments                                     Payment[]
+  assignedEmployees                            AssignedEmployee[]
 
   @@index([eventId], map: "event_id")
   @@index([paymentStatusId], map: "payment_status_id")
@@ -93,14 +75,19 @@ model Employee {
   userId      String    @db.Char(36) @map("user_id")
   vendorId    String    @db.Char(36) @map("vendor_id")
   designation String    @db.VarChar(100)
-  salary      Decimal   @db.Decimal(10, 2)
   joinedDate  DateTime  @db.Date @map("joined_date")
   statusId    String    @db.Char(36) @map("status_id")
   createdAt   DateTime? @default(now()) @db.Timestamp(0) @map("created_at")
   updatedAt   DateTime? @default(now()) @db.Timestamp(0) @map("updated_at")
+  totalPaid   Decimal   @default(0) @db.Decimal(10, 2) @map("total_paid")
+  totalRemaining Decimal @default(0) @db.Decimal(10, 2) @map("total_remaining")
+  extraAmount  Decimal   @default(0) @db.Decimal(10, 2) @map("extra_amount")
   users       User      @relation("employee_user", fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "employees_ibfk_1")
   vendor      User      @relation("employee_vendor", fields: [vendorId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "employees_ibfk_3")
   statuses    Status    @relation(fields: [statusId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "employees_ibfk_2")
+  serviceRates ServiceRate[]
+  assignedEmployees AssignedEmployee[]
+  paymentHistory EmployeePaymentHistory[]
 
   @@index([statusId], map: "status_id")
   @@index([userId], map: "user_id")
@@ -108,10 +95,22 @@ model Employee {
   @@map("employees")
 }
 
+model EmployeePaymentHistory {
+  id          String    @id @default(uuid()) @db.Char(36)
+  employeeId  String    @db.Char(36) @map("employee_id")
+  amount      Decimal   @db.Decimal(10, 2)
+  paidAt      DateTime  @default(now()) @db.Timestamp(0) @map("paid_at")
+  employee    Employee  @relation(fields: [employeeId], references: [id])
+
+  @@index([employeeId])
+  @@map("employee_payment_history")
+}
+
 model Event {
   id           String     @id @db.Char(36)
   customerName String     @db.Char(255) @map("customer_name")
   phoneNumber  String?    @db.VarChar(15) @map("phone_number")
+  email        String?    @db.VarChar(100)
   eventName    String     @db.VarChar(255) @map("event_name")
   eventDate    DateTime   @db.Date @map("event_date")
   location     String     @db.VarChar(255)
@@ -197,8 +196,9 @@ model Service {
   vendor            User                @relation(fields: [vendorId], references: [id])
   bookings          Bookings[]
   serviceCategories ServiceCategory[]
-  bookingRequests   BookingRequest[]
   decorationPhotos  DecorationPhoto[]
+  serviceRates      ServiceRate[]
+  assignedEmployees AssignedEmployee[]
 
   @@map("services")
 }
@@ -212,7 +212,6 @@ model Status {
   updatedAt                                 DateTime?  @default(now()) @db.Timestamp(0) @map("updated_at")
   bookingStatus                             Bookings[]  @relation("booking_status")
   paymentStatus                             Bookings[]  @relation("payment_status")
-  bookingRequests                           BookingRequest[]
   employees                                 Employee[]
   payments                                  Payment[]
 
@@ -241,4 +240,35 @@ model User {
   @@map("users")
   refreshTokens RefreshToken[]
 
+}
+
+model ServiceRate {
+  id         String   @id @default(uuid()) @db.Char(36)
+  serviceId  String   @db.Char(36) @map("service_id")
+  employeeId String?  @db.Char(36) @map("employee_id")
+  charge     Decimal  @db.Decimal(10, 2)
+
+  service    Service  @relation(fields: [serviceId], references: [id])
+  employee   Employee? @relation(fields: [employeeId], references: [id])
+
+  @@unique([serviceId, employeeId])
+  @@map("service_rates")
+}
+
+model AssignedEmployee {
+  id          String    @id @default(uuid())
+  bookingId   String
+  employeeId  String
+  serviceId   String
+  isPaid      Boolean   @default(false) @map("is_paid")
+  paidAt      DateTime? @db.Timestamp(0) @map("paid_at")
+  booking     Bookings  @relation(fields: [bookingId], references: [id])
+  employee    Employee  @relation(fields: [employeeId], references: [id])
+  service     Service   @relation(fields: [serviceId], references: [id])
+
+  @@unique([bookingId, employeeId, serviceId])
+  @@index([bookingId])
+  @@index([employeeId])
+  @@index([serviceId])
+  @@map("assigned_employees")
 }

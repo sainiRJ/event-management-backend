@@ -169,7 +169,6 @@ export default class AuthService {
 				);
 			}
 
-
 			let emailOrPhone = userData.emailOrPhone;
 
 			// If input is a phone number (digits only), add country code prefix
@@ -316,7 +315,6 @@ export default class AuthService {
 				select: {
 					id: true,
 					designation: true,
-					salary: true,
 					joinedDate: true,
 					statuses: {
 						select: {
@@ -330,13 +328,11 @@ export default class AuthService {
 			userResponse = {
 				...userResponse,
 				employeeId: employee?.id,
-				salary: employee?.salary,
 				designation: employee?.designation,
 				joinedDate: employee?.joinedDate,
 				status: employee?.statuses.name,
 			};
 		}
-
 
 		try {
 			return serviceUtil.buildResult(
